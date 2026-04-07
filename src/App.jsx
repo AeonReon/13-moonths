@@ -51,6 +51,7 @@ function gregorianToCalendar(date) {
 }
 
 const ASTRO_EVENTS = [
+  // ── 2025 (calendar year 1) ──────────────────────────────────────────────────
   { date:new Date(2025,0,13),  type:"full_moon",       label:"Full Moon" },
   { date:new Date(2025,0,29),  type:"new_moon",        label:"New Moon"  },
   { date:new Date(2025,1,12),  type:"full_moon",       label:"Full Moon" },
@@ -79,6 +80,36 @@ const ASTRO_EVENTS = [
   { date:new Date(2025,11,4),  type:"full_moon",       label:"Full Moon" },
   { date:new Date(2025,11,20), type:"new_moon",        label:"New Moon"  },
   { date:new Date(2025,11,21), type:"solstice_winter", label:"Winter Solstice" },
+  // ── 2026 (calendar year 2) ──────────────────────────────────────────────────
+  { date:new Date(2026,0,3),   type:"full_moon",       label:"Full Moon" },
+  { date:new Date(2026,0,18),  type:"new_moon",        label:"New Moon"  },
+  { date:new Date(2026,1,1),   type:"full_moon",       label:"Full Moon" },
+  { date:new Date(2026,1,17),  type:"new_moon",        label:"New Moon"  },
+  { date:new Date(2026,2,3),   type:"full_moon",       label:"Full Moon" },
+  { date:new Date(2026,2,18),  type:"new_moon",        label:"New Moon"  },
+  { date:new Date(2026,2,20),  type:"equinox_spring",  label:"Spring Equinox" },
+  { date:new Date(2026,3,1),   type:"full_moon",       label:"Full Moon" },
+  { date:new Date(2026,3,17),  type:"new_moon",        label:"New Moon"  },
+  { date:new Date(2026,4,1),   type:"full_moon",       label:"Full Moon" },
+  { date:new Date(2026,4,16),  type:"new_moon",        label:"New Moon"  },
+  { date:new Date(2026,4,31),  type:"full_moon",       label:"Full Moon" },
+  { date:new Date(2026,5,14),  type:"new_moon",        label:"New Moon"  },
+  { date:new Date(2026,5,21),  type:"solstice_summer", label:"Summer Solstice" },
+  { date:new Date(2026,5,29),  type:"full_moon",       label:"Full Moon" },
+  { date:new Date(2026,6,14),  type:"new_moon",        label:"New Moon"  },
+  { date:new Date(2026,6,29),  type:"full_moon",       label:"Full Moon" },
+  { date:new Date(2026,7,12),  type:"new_moon",        label:"New Moon"  },
+  { date:new Date(2026,7,27),  type:"full_moon",       label:"Full Moon" },
+  { date:new Date(2026,8,11),  type:"new_moon",        label:"New Moon"  },
+  { date:new Date(2026,8,22),  type:"equinox_autumn",  label:"Autumn Equinox" },
+  { date:new Date(2026,8,26),  type:"full_moon",       label:"Full Moon" },
+  { date:new Date(2026,9,11),  type:"new_moon",        label:"New Moon"  },
+  { date:new Date(2026,9,25),  type:"full_moon",       label:"Full Moon" },
+  { date:new Date(2026,10,9),  type:"new_moon",        label:"New Moon"  },
+  { date:new Date(2026,10,24), type:"full_moon",       label:"Full Moon" },
+  { date:new Date(2026,11,9),  type:"new_moon",        label:"New Moon"  },
+  { date:new Date(2026,11,21), type:"solstice_winter", label:"Winter Solstice" },
+  { date:new Date(2026,11,24), type:"full_moon",       label:"Full Moon" },
 ];
 
 const ASTRO_ICONS  = { full_moon:"🌕", new_moon:"🌑", equinox_spring:"☀️⚖️", equinox_autumn:"🍂⚖️", solstice_summer:"☀️", solstice_winter:"❄️" };
