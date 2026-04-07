@@ -21,10 +21,10 @@ const MOONTHS = [
 ];
 
 const SOLAR_EVENTS = {
-  solstice_summer: { symbol:"☀️", label:"Summer Solstice", note:"The sun reaches its highest point. Peak of light.",  color:"#b85c00", bg:"linear-gradient(135deg,#ffe0a0,#ffd070)", border:"#d4880a" },
-  solstice_winter: { symbol:"❄️", label:"Winter Solstice", note:"The longest night. From here the light returns.",    color:"#1a6090", bg:"linear-gradient(135deg,#c8e8f8,#a8d4ef)", border:"#2a80b0" },
-  equinox_spring:  { symbol:"🌱", label:"Spring Equinox",  note:"Day and night held equal. The world reawakens.",     color:"#2a7040", bg:"linear-gradient(135deg,#d0eec8,#b8e0a8)", border:"#3a9050" },
-  equinox_autumn:  { symbol:"🍂", label:"Autumn Equinox",  note:"Day and night balanced. The descent begins.",        color:"#904010", bg:"linear-gradient(135deg,#f8ddb0,#f0c880)", border:"#b05a18" },
+  solstice_summer: { symbol:"☀️", symbolLabel:"☀️ Longest Day",  label:"Summer Solstice", note:"The sun reaches its highest point. Peak of light.",  color:"#b85c00", bg:"linear-gradient(135deg,#ffe0a0,#ffd070)", border:"#d4880a" },
+  solstice_winter: { symbol:"❄️", symbolLabel:"❄️ Longest Night", label:"Winter Solstice", note:"The longest night. From here the light returns.",    color:"#1a6090", bg:"linear-gradient(135deg,#c8e8f8,#a8d4ef)", border:"#2a80b0" },
+  equinox_spring:  { symbol:"☀️⚖️", symbolLabel:"☀️⚖️ Equal Light", label:"Spring Equinox",  note:"Day and night held equal. The world reawakens.",     color:"#2a7040", bg:"linear-gradient(135deg,#d0eec8,#b8e0a8)", border:"#3a9050" },
+  equinox_autumn:  { symbol:"🍂⚖️", symbolLabel:"🍂⚖️ Equal Light", label:"Autumn Equinox",  note:"Day and night balanced. The descent begins.",        color:"#904010", bg:"linear-gradient(135deg,#f8ddb0,#f0c880)", border:"#b05a18" },
 };
 
 const EPOCH = new Date(2024, 11, 25);
@@ -70,8 +70,8 @@ const ASTRO_EVENTS = [
   { date:new Date(2025,11,21), type:"solstice_winter", label:"Winter Solstice" },
 ];
 
-const ASTRO_ICONS  = { full_moon:"○", new_moon:"●", equinox_spring:"🌱", equinox_autumn:"🍂", solstice_summer:"☀️", solstice_winter:"❄️" };
-const ASTRO_COLORS = { full_moon:"#5a7a9a", new_moon:"#7a8fa0", equinox_spring:"#2a7040", equinox_autumn:"#904010", solstice_summer:"#b85c00", solstice_winter:"#1a6090" };
+const ASTRO_ICONS  = { full_moon:"🌕", new_moon:"🌑", equinox_spring:"☀️⚖️", equinox_autumn:"🍂⚖️", solstice_summer:"☀️", solstice_winter:"❄️" };
+const ASTRO_COLORS = { full_moon:"#c8a840", new_moon:"#4a5a6a", equinox_spring:"#2a7040", equinox_autumn:"#904010", solstice_summer:"#b85c00", solstice_winter:"#1a6090" };
 
 function getAstroForDate(date) {
   return ASTRO_EVENTS.filter(e =>
@@ -181,8 +181,8 @@ export default function App() {
       {/* ── Footer legend ── */}
       <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"rgba(255,255,255,0.96)", backdropFilter:"blur(8px)", borderTop:`1px solid ${T.border}`, padding:"0.55rem 1rem", display:"flex", justifyContent:"center", gap:"1.2rem", flexWrap:"wrap", zIndex:10 }}>
         {Object.entries(ASTRO_ICONS).map(([type,icon]) => (
-          <span key={type} style={{ fontSize:"0.62rem", color:ASTRO_COLORS[type], letterSpacing:"0.04em" }}>
-            {icon} {type.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase())}
+          <span key={type} style={{ fontSize:"0.65rem", color:ASTRO_COLORS[type], letterSpacing:"0.04em", display:"inline-flex", alignItems:"center", gap:"0.25rem" }}>
+            <span style={{ fontSize:"0.85rem" }}>{icon}</span> {type.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase())}
           </span>
         ))}
       </div>
@@ -222,8 +222,10 @@ function YearView({ calYear, onSelectMoonth }) {
             }}>
               {/* Left: text content */}
               <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:"0.52rem", color:T.textSoft, letterSpacing:"0.13em", marginBottom:"0.15rem" }}>MOONTH {m.num}</div>
-                <div style={{ fontSize:"0.95rem", color:isCurrent?T.gold:T.text, fontWeight:600, marginBottom:"0.15rem" }}>{m.name}</div>
+                <div style={{ display:"flex", alignItems:"center", gap:"0.5rem", marginBottom:"0.15rem" }}>
+                  <span style={{ fontSize:"1.5rem", fontWeight:700, color:isCurrent?T.gold:T.textMid, lineHeight:1, letterSpacing:"-0.02em" }}>{m.num}</span>
+                  <span style={{ fontSize:"0.95rem", color:isCurrent?T.gold:T.text, fontWeight:600 }}>{m.name}</span>
+                </div>
                 <div style={{ fontSize:"0.6rem", color:T.textSoft, marginBottom:"0.35rem" }}>{dr}</div>
                 <div style={{ fontSize:"0.6rem", color:T.textMid, fontStyle:"italic", lineHeight:1.45, marginBottom:"0.5rem" }}>{m.desc}</div>
 
@@ -239,9 +241,9 @@ function YearView({ calYear, onSelectMoonth }) {
                 })}
 
                 {/* Moon phase icons */}
-                <div style={{ display:"flex", gap:"0.3rem", alignItems:"center" }}>
+                <div style={{ display:"flex", gap:"0.4rem", alignItems:"center", marginTop:"0.2rem" }}>
                   {astros.filter(ev=>!SOLAR_EVENTS[ev.type]).map((ev,j) => (
-                    <span key={j} style={{ fontSize:"0.75rem", color:ASTRO_COLORS[ev.type] }} title={ev.label}>{ASTRO_ICONS[ev.type]}</span>
+                    <span key={j} style={{ fontSize:"1rem" }} title={ev.label}>{ASTRO_ICONS[ev.type]}</span>
                   ))}
                 </div>
               </div>
@@ -321,8 +323,8 @@ function MoonthView({ calYear, moonthIdx, onPrev, onNext }) {
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"1.2rem" }}>
         <Arr onClick={onPrev} disabled={moonthIdx===0}  ch="‹" />
         <div style={{ textAlign:"center" }}>
-          <div style={{ fontSize:"0.52rem", letterSpacing:"0.2em", color:T.textSoft, marginBottom:"0.2rem" }}>MOONTH {m.num}</div>
           <div style={{ fontSize:"2rem", marginBottom:"0.1rem" }}>{m.symbol}</div>
+          <div style={{ fontSize:"2.2rem", fontWeight:700, color:T.textMid, lineHeight:1, marginBottom:"0.1rem" }}>{m.num}</div>
           <div style={{ fontSize:"clamp(1.3rem,4vw,1.9rem)", color:T.gold, fontWeight:400, letterSpacing:"0.04em" }}>{m.name}</div>
           <div style={{ fontSize:"0.66rem", color:T.textMid, fontStyle:"italic", marginTop:"0.15rem" }}>{m.desc}</div>
         </div>
@@ -369,7 +371,7 @@ function MoonthView({ calYear, moonthIdx, onPrev, onNext }) {
                 {greg.toLocaleDateString("en-GB",{day:"numeric",month:"short"})}
               </div>
               {astro.filter(ev=>!SOLAR_EVENTS[ev.type]).map((ev,i) => (
-                <span key={i} style={{ fontSize:"0.68rem", color:ASTRO_COLORS[ev.type] }} title={ev.label}>{ASTRO_ICONS[ev.type]}</span>
+                <span key={i} style={{ fontSize:"0.9rem" }} title={ev.label}>{ASTRO_ICONS[ev.type]}</span>
               ))}
             </div>
           );
@@ -387,7 +389,7 @@ function MoonthView({ calYear, moonthIdx, onPrev, onNext }) {
           {days.filter(d=>d.astro.some(ev=>!SOLAR_EVENTS[ev.type])).map(({dayNum,greg,astro}) =>
             astro.filter(ev=>!SOLAR_EVENTS[ev.type]).map((ev,i) => (
               <div key={`${dayNum}-${i}`} style={{ display:"flex", alignItems:"center", gap:"0.7rem", padding:"0.4rem 0", borderBottom:`1px solid ${T.borderSoft}` }}>
-                <span style={{ fontSize:"0.95rem", color:ASTRO_COLORS[ev.type], width:20, textAlign:"center" }}>{ASTRO_ICONS[ev.type]}</span>
+                <span style={{ fontSize:"1.1rem", width:24, textAlign:"center" }}>{ASTRO_ICONS[ev.type]}</span>
                 <span style={{ fontSize:"0.73rem", color:T.text }}>{ev.label}</span>
                 <span style={{ fontSize:"0.6rem", color:T.textSoft, marginLeft:"auto" }}>Day {dayNum} · {greg.toLocaleDateString("en-GB",{day:"numeric",month:"long"})}</span>
               </div>
