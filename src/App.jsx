@@ -24,10 +24,10 @@ const SOLAR_EVENTS = {
   solstice_summer: { symbol:"☀️", symbolLabel:"☀️ Longest Day",  label:"Summer Solstice", note:"The sun reaches its highest point. Peak of light.",  color:"#b85c00", bg:"linear-gradient(135deg,#ffe0a0,#ffd070)", border:"#d4880a" },
   solstice_winter: { symbol:"❄️", symbolLabel:"❄️ Longest Night", label:"Winter Solstice", note:"The longest night. From here the light returns.",    color:"#1a6090", bg:"linear-gradient(135deg,#c8e8f8,#a8d4ef)", border:"#2a80b0" },
   equinox_spring:  { symbol:"☀️⚖️", symbolLabel:"☀️⚖️ Equal Light", label:"Spring Equinox",  note:"Day and night held equal. The world reawakens.",     color:"#2a7040", bg:"linear-gradient(135deg,#d0eec8,#b8e0a8)", border:"#3a9050" },
-  equinox_autumn:  { symbol:"🍂⚖️", symbolLabel:"🍂⚖️ Equal Light", label:"Autumn Equinox",  note:"Day and night balanced. The descent begins.",        color:"#904010", bg:"linear-gradient(135deg,#f8ddb0,#f0c880)", border:"#b05a18" },
+  equinox_autumn:  { symbol:"☀️⚖️", symbolLabel:"☀️⚖️ Equal Light", label:"Autumn Equinox",  note:"Day and night balanced. The descent begins.",        color:"#904010", bg:"linear-gradient(135deg,#f8ddb0,#f0c880)", border:"#b05a18" },
 };
 
-const EPOCH = new Date(2024, 11, 25);
+const EPOCH = new Date(2025, 11, 25);
 
 function calendarToGregorian(calYear, moonthIdx, day) {
   const d = new Date(EPOCH);
@@ -123,7 +123,7 @@ const T = {
 export default function App() {
   const [view, setView]                     = useState("year");
   const [selectedMoonth, setSelectedMoonth] = useState(TODAY_CAL?.moonthIdx ?? 0);
-  const [calYear]                           = useState(1);
+  const [calYear]                           = useState(TODAY_CAL?.calYear ?? 1);
   const [converterInput, setConverterInput] = useState("");
   const [converterResult, setConverterResult] = useState(null);
 
