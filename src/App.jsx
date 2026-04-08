@@ -97,27 +97,28 @@ function getAstroForDate(date) {
 const TODAY_GREG = new Date();
 const TODAY_CAL  = gregorianToCalendar(TODAY_GREG);
 
-// ─── SUNRISE PALETTE ──────────────────────────────────────────────────────────
+// ─── EVENING SKY PALETTE ──────────────────────────────────────────────────────
 const T = {
-  bg:          "#f0f7ff",        // pale dawn sky
-  surface:     "#ffffff",
-  surfaceAlt:  "#e4f0fb",
-  card:        "#fafdff",
-  border:      "#b8d4ec",
-  borderSoft:  "#cfe4f5",
-  text:        "#0e2030",
-  textMid:     "#3a5a78",
-  textSoft:    "#7090b0",
-  gold:        "#c87800",        // warm sunrise gold
-  goldBg:      "#fff4d8",
-  goldBorder:  "#e8a830",
-  orange:      "#d05000",        // sunrise orange
-  orangeBg:    "#fff0e4",
-  sky:         "#1a78c0",        // clear sky blue
-  skyBg:       "#e0f0ff",
-  skyBorder:   "#6ab0e0",
-  shadow:      "rgba(20,60,100,0.08)",
-  shadowMd:    "rgba(20,60,100,0.14)",
+  bg:          "#0b1628",        // deep evening sky
+  surface:     "#111e34",
+  surfaceAlt:  "#152540",
+  card:        "#13203a",
+  border:      "#1e3a5c",
+  borderSoft:  "#162d4a",
+  text:        "#d4e0f0",
+  textMid:     "#8aa4c4",
+  textSoft:    "#5a7a9e",
+  gold:        "#e0a840",        // warm gold accent
+  goldBg:      "rgba(224,168,64,0.12)",
+  goldBorder:  "#c89030",
+  orange:      "#e08030",        // soft amber
+  orangeBg:    "rgba(224,128,48,0.1)",
+  sky:         "#5cacee",        // evening sky blue
+  skyBg:       "rgba(92,172,238,0.1)",
+  skyBorder:   "#3a8cd0",
+  shadow:      "rgba(0,0,0,0.25)",
+  shadowMd:    "rgba(0,0,0,0.35)",
+  activeBorder:"#5cacee",       // highlight border for current moonth
 };
 
 export default function App() {
@@ -141,21 +142,39 @@ export default function App() {
     <div style={{ minHeight:"100vh", background:T.bg, color:T.text, fontFamily:"'Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif" }}>
       <style>{`
         @keyframes fadeUp     { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes todayRing  { 0%,100%{box-shadow:0 0 0 2px rgba(200,120,0,0.3)} 50%{box-shadow:0 0 0 5px rgba(200,120,0,0.5)} }
+        @keyframes todayRing  { 0%,100%{box-shadow:0 0 0 2px rgba(92,172,238,0.3)} 50%{box-shadow:0 0 0 5px rgba(92,172,238,0.5)} }
         @keyframes solarPulse { 0%,100%{opacity:0.9} 50%{opacity:1} }
         @keyframes symbolFloat{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
-        .mcard:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(20,60,100,0.13) !important; }
+        @keyframes twinkle    { 0%,100%{opacity:0.3} 50%{opacity:1} }
+        .mcard:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,0.3) !important; }
         .dcard:hover { background:${T.skyBg} !important; border-color:${T.skyBorder} !important; }
         .nbtn:hover  { background:${T.skyBg} !important; color:${T.sky} !important; border-color:${T.sky} !important; }
+        .stars-bg { position:fixed; top:0; left:0; right:0; bottom:0; pointer-events:none; z-index:0; overflow:hidden; }
+        .star { position:absolute; width:2px; height:2px; background:#c8d8f0; border-radius:50%; }
       `}</style>
+      {/* Starfield background */}
+      <div className="stars-bg">
+        {Array.from({length:90},(_,i) => (
+          <div key={i} className="star" style={{
+            left:`${Math.random()*100}%`,
+            top:`${Math.random()*100}%`,
+            width: Math.random()>0.85 ? '3px' : Math.random()>0.6 ? '2px' : '1.5px',
+            height: Math.random()>0.85 ? '3px' : Math.random()>0.6 ? '2px' : '1.5px',
+            opacity: 0.2 + Math.random()*0.6,
+            animation:`twinkle ${2+Math.random()*4}s ease-in-out ${Math.random()*3}s infinite`,
+          }} />
+        ))}
+      </div>
 
       {/* ── Header ── */}
       <header style={{
-        background:`linear-gradient(160deg, #fff8ee 0%, #e8f4ff 100%)`,
+        background:`linear-gradient(160deg, #0e1a30 0%, #142040 50%, #0b1628 100%)`,
         borderBottom:`1px solid ${T.border}`,
         padding:"2rem 1.5rem 1.3rem",
         textAlign:"center",
         boxShadow:`0 2px 12px ${T.shadow}`,
+        position:"relative",
+        zIndex:1,
       }}>
         <div style={{ fontSize:"0.6rem", letterSpacing:"0.3em", color:T.textSoft, marginBottom:"0.3rem" }}>
           THE LIVING CALENDAR · YEAR {calYear}
@@ -165,7 +184,7 @@ export default function App() {
           fontSize:"clamp(1.7rem,4.5vw,2.8rem)",
           fontWeight:400,
           letterSpacing:"0.07em",
-          background:`linear-gradient(120deg, ${T.orange} 0%, ${T.gold} 50%, ${T.sky} 100%)`,
+          background:`linear-gradient(120deg, ${T.sky} 0%, ${T.gold} 50%, ${T.orange} 100%)`,
           WebkitBackgroundClip:"text",
           WebkitTextFillColor:"transparent",
         }}>13 Moonths</h1>
@@ -185,14 +204,14 @@ export default function App() {
         </nav>
       </header>
 
-      <main style={{ padding:"1.5rem 1rem 5rem", maxWidth:980, margin:"0 auto" }}>
+      <main style={{ padding:"1.5rem 1rem 5rem", maxWidth:980, margin:"0 auto", position:"relative", zIndex:1 }}>
         {view==="year"      && <YearView calYear={calYear} onSelectMoonth={i=>{setSelectedMoonth(i);setView("moonth");}} />}
         {view==="moonth"    && <MoonthView calYear={calYear} moonthIdx={selectedMoonth} onPrev={()=>setSelectedMoonth(m=>Math.max(0,m-1))} onNext={()=>setSelectedMoonth(m=>Math.min(12,m+1))} />}
         {view==="converter" && <ConverterView input={converterInput} setInput={setConverterInput} result={converterResult} onConvert={handleConverter} />}
       </main>
 
       {/* ── Footer legend ── */}
-      <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"rgba(255,255,255,0.96)", backdropFilter:"blur(8px)", borderTop:`1px solid ${T.border}`, padding:"0.55rem 1rem", display:"flex", justifyContent:"center", gap:"1.2rem", flexWrap:"wrap", zIndex:10 }}>
+      <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"rgba(11,22,40,0.95)", backdropFilter:"blur(8px)", borderTop:`1px solid ${T.border}`, padding:"0.55rem 1rem", display:"flex", justifyContent:"center", gap:"1.2rem", flexWrap:"wrap", zIndex:10 }}>
         {Object.entries(ASTRO_ICONS).map(([type,icon]) => (
           <span key={type} style={{ fontSize:"0.65rem", color:ASTRO_COLORS[type], letterSpacing:"0.04em", display:"inline-flex", alignItems:"center", gap:"0.25rem" }}>
             <span style={{ fontSize:"0.85rem" }}>{icon}</span> {type.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase())}
@@ -218,17 +237,15 @@ function YearView({ calYear, onSelectMoonth }) {
 
           return (
             <div key={i} className="mcard" onClick={()=>onSelectMoonth(i)} style={{
-              background: isCurrent
-                ? `linear-gradient(135deg, ${T.goldBg}, ${T.skyBg})`
-                : T.card,
-              border:`1px solid ${isCurrent ? T.goldBorder : T.borderSoft}`,
+              background: T.card,
+              border: isCurrent ? `2px solid ${T.activeBorder}` : `1px solid ${T.borderSoft}`,
               borderRadius:"14px",
-              padding:"0.9rem 1rem",
+              padding: isCurrent ? "calc(0.9rem - 1px) calc(1rem - 1px)" : "0.9rem 1rem",
               cursor:"pointer",
               transition:"all 0.2s",
               position:"relative",
               overflow:"hidden",
-              boxShadow: isCurrent ? `0 4px 16px ${T.shadowMd}` : `0 1px 5px ${T.shadow}`,
+              boxShadow: isCurrent ? `0 0 18px rgba(92,172,238,0.25), 0 4px 16px ${T.shadowMd}` : `0 1px 5px ${T.shadow}`,
               display:"flex",
               alignItems:"stretch",
               gap:"0",
@@ -236,8 +253,8 @@ function YearView({ calYear, onSelectMoonth }) {
               {/* Left: text content */}
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:"0.5rem", marginBottom:"0.15rem" }}>
-                  <span style={{ fontSize:"1.5rem", fontWeight:700, color:isCurrent?T.gold:T.textMid, lineHeight:1, letterSpacing:"-0.02em" }}>{m.num}</span>
-                  <span style={{ fontSize:"0.95rem", color:isCurrent?T.gold:T.text, fontWeight:600 }}>{m.name}</span>
+                  <span style={{ fontSize:"1.5rem", fontWeight:700, color:isCurrent?T.sky:T.textMid, lineHeight:1, letterSpacing:"-0.02em" }}>{m.num}</span>
+                  <span style={{ fontSize:"0.95rem", color:isCurrent?T.sky:T.text, fontWeight:600 }}>{m.name}</span>
                 </div>
                 <div style={{ fontSize:"0.6rem", color:T.textSoft, marginBottom:"0.35rem" }}>{dr}</div>
                 <div style={{ fontSize:"0.6rem", color:T.textMid, fontStyle:"italic", lineHeight:1.45, marginBottom:"0.5rem" }}>{m.desc}</div>
@@ -261,14 +278,14 @@ function YearView({ calYear, onSelectMoonth }) {
                 </div>
               </div>
 
-              {/* Right: big decorative symbol */}
+              {/* Right: big decorative symbol — always fully visible */}
               <div style={{
                 display:"flex", alignItems:"center", justifyContent:"center",
                 paddingLeft:"0.6rem",
                 fontSize:"2.8rem",
-                opacity: isCurrent ? 1 : 0.18,
+                opacity: 1,
                 animation: isCurrent ? "symbolFloat 4s ease-in-out infinite" : "none",
-                transition:"opacity 0.2s",
+                transition:"all 0.2s",
                 flexShrink:0,
                 userSelect:"none",
               }}>
@@ -276,7 +293,7 @@ function YearView({ calYear, onSelectMoonth }) {
               </div>
 
               {isCurrent && (
-                <div style={{ position:"absolute", top:"0.55rem", right:"0.55rem", fontSize:"0.48rem", letterSpacing:"0.1em", background:T.goldBg, color:T.gold, border:`1px solid ${T.goldBorder}`, borderRadius:"2rem", padding:"0.08rem 0.4rem" }}>NOW</div>
+                <div style={{ position:"absolute", top:"0.55rem", right:"0.55rem", fontSize:"0.48rem", letterSpacing:"0.1em", background:"rgba(92,172,238,0.15)", color:T.sky, border:`1px solid ${T.skyBorder}`, borderRadius:"2rem", padding:"0.08rem 0.4rem" }}>NOW</div>
               )}
             </div>
           );
@@ -284,7 +301,7 @@ function YearView({ calYear, onSelectMoonth }) {
       </div>
 
       {/* Hollow Day */}
-      <div style={{ background:"rgba(255,255,255,0.6)", border:`1px dashed ${T.border}`, borderRadius:"10px", padding:"0.75rem", textAlign:"center", color:T.textSoft, fontSize:"0.62rem", letterSpacing:"0.1em" }}>
+      <div style={{ background:"rgba(20,32,64,0.5)", border:`1px dashed ${T.border}`, borderRadius:"10px", padding:"0.75rem", textAlign:"center", color:T.textSoft, fontSize:"0.62rem", letterSpacing:"0.1em" }}>
         ✦ &nbsp; THE HOLLOW DAY · Dec 24 · Outside all moonths · The breath between years &nbsp; ✦
       </div>
     </div>
