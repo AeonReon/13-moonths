@@ -397,6 +397,37 @@ function activeShower(date) {
   return withPeak[0];
 }
 
+// ─── WHERE WE ARE IN THE SKY (sun sign vs real constellation, season, great age) ─
+function sunEclLon(date) { const s = sunRect(dayNumber(date)); return rev360(atan2d(s.ys, s.xs)); }
+const ZODIAC = [["Aries","♈"],["Taurus","♉"],["Gemini","♊"],["Cancer","♋"],["Leo","♌"],["Virgo","♍"],["Libra","♎"],["Scorpio","♏"],["Sagittarius","♐"],["Capricorn","♑"],["Aquarius","♒"],["Pisces","♓"]];
+function tropicalSign(date) { return ZODIAC[Math.floor(sunEclLon(date)/30)%12]; }
+// The 13 constellations the Sun actually crosses (standard IAU date ranges, incl. Ophiuchus).
+const SUN_CONST = [
+  {name:"Capricornus",m:0,d:20},{name:"Aquarius",m:1,d:16},{name:"Pisces",m:2,d:11},
+  {name:"Aries",m:3,d:18},{name:"Taurus",m:4,d:13},{name:"Gemini",m:5,d:21},
+  {name:"Cancer",m:6,d:20},{name:"Leo",m:7,d:10},{name:"Virgo",m:8,d:16},
+  {name:"Libra",m:9,d:30},{name:"Scorpius",m:10,d:23},{name:"Ophiuchus",m:10,d:29},
+  {name:"Sagittarius",m:11,d:17},
+];
+function sunConstellation(date) {
+  const t = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  let cur = SUN_CONST[SUN_CONST.length-1];   // Sagittarius wraps across the new year
+  for (const c of SUN_CONST) { if (t >= new Date(date.getFullYear(), c.m, c.d)) cur = c; }
+  return cur.name;
+}
+const SEASON_BY_TYPE = {
+  solstice_winter:{ name:"The Kindling", span:"Winter Solstice → Spring Equinox", glyph:"❄️" },
+  equinox_spring: { name:"The Greening", span:"Spring Equinox → Summer Solstice", glyph:"🌱" },
+  solstice_summer:{ name:"The Ripening", span:"Summer Solstice → Autumn Equinox", glyph:"🌻" },
+  equinox_autumn: { name:"The Resting",  span:"Autumn Equinox → Winter Solstice", glyph:"🍂" },
+};
+function currentSeason(date) {
+  const past = ASTRO_EVENTS.filter(e => SOLAR_EVENTS[e.type] && e.date <= date).sort((a,b)=>b.date-a.date);
+  return SEASON_BY_TYPE[past[0] ? past[0].type : "solstice_winter"];
+}
+// The precessional "great age" — presented as belief, never as fact.
+const GREAT_AGE = { glyph:"♒", text:"Many hold that we are leaving the Age of Pisces and moving into the Age of Aquarius." };
+
 // ─── THEMES ───────────────────────────────────────────────────────────────────
 const THEMES = {
   dark: {
@@ -533,15 +564,15 @@ export default function App() {
         }}>{mode==="dark" ? "☀️" : "🌙"}</button>
 
         <div style={{ fontFamily:SANS, fontSize:"0.6rem", fontWeight:600, letterSpacing:"0.28em", color:T.textSoft, marginBottom:"0.4rem" }}>
-          THE LIVING CALENDAR · YEAR {calYear}
+          READ THE TIME FROM THE SKY
         </div>
         <h1 style={{
           margin:0, fontFamily:DISPLAY, fontSize:"clamp(1.8rem,5vw,3rem)", fontWeight:800, letterSpacing:"-0.01em",
           background:`linear-gradient(120deg, ${T.sky} 0%, ${T.gold} 55%, #e08040 100%)`,
           WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent",
-        }}>13 Moonths</h1>
+        }}>The Sky Clock</h1>
         <div style={{ fontFamily:SANS, fontSize:"0.66rem", fontWeight:500, color:T.textSoft, marginTop:"0.35rem", letterSpacing:"0.12em" }}>
-          Moon · Air · Water · Earth · Fire · Star · Sun
+          13 moonths · 28 days · aligned to sun, moon &amp; stars
         </div>
       </header>
 
@@ -562,7 +593,7 @@ export default function App() {
 // ─── BOTTOM TAB BAR ───────────────────────────────────────────────────────────
 function BottomNav({ T, mode, view, setView }) {
   const items = [
-    { v:"today",     label:"Tonight",   icon:"✨", match:["today"] },
+    { v:"today",     label:"Now",       icon:"✨", match:["today"] },
     { v:"grid",      label:"Calendar",  icon:"🗓️", match:["grid","moonth"] },
     { v:"year",      label:"Cards",     icon:"🖼️", match:["year"] },
     { v:"converter", label:"Convert",   icon:"🔄", match:["converter"] },
@@ -656,6 +687,10 @@ function TodayView({ T, onOpenMoonth }) {
   const times   = loc ? skyTimes(TODAY_GREG, loc.lat, loc.lng) : null;
   const planets = loc ? planetsTonight(TODAY_GREG, loc.lat, loc.lng) : [];
   const shower  = activeShower(TODAY_GREG);
+  const ourDate = m ? `${String(cal.day).padStart(2,"0")}/${String(cal.moonthIdx+1).padStart(2,"0")}/${String(cal.calYear).padStart(2,"0")}` : "—";
+  const season  = currentSeason(TODAY_GREG);
+  const sign    = tropicalSign(TODAY_GREG);
+  const constel = sunConstellation(TODAY_GREG);
 
   // Look-up streak
   const [lookups, setLookups] = useState(loadLookups);
@@ -687,17 +722,48 @@ function TodayView({ T, onOpenMoonth }) {
   return (
     <div style={{ maxWidth:600, margin:"0 auto", animation:"fadeUp 0.4s ease" }}>
 
-      {/* Dateline */}
-      <div style={{ textAlign:"center", marginBottom:"1rem" }}>
-        <div style={{ fontFamily:SANS, fontSize:"0.66rem", fontWeight:500, letterSpacing:"0.06em", color:T.textSoft }}>
-          {TODAY_GREG.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"})}
+      {/* The Sky Clock — today's date, ours big, Gregorian small */}
+      <div style={{ borderRadius:"22px", padding:"1.6px", background:`linear-gradient(140deg, ${T.gold}, ${T.sky})`, boxShadow:T.shadow, marginBottom:"1rem" }}>
+        <div style={{ background:T.card, borderRadius:"20.5px", padding:"1.3rem 1.2rem 1.2rem", textAlign:"center" }}>
+          <div style={{ fontFamily:DISPLAY, fontSize:"0.56rem", fontWeight:600, letterSpacing:"0.2em", color:T.textSoft }}>THE SKY CLOCK · TODAY</div>
+          <div style={{ fontFamily:DISPLAY, fontSize:"clamp(2.6rem,13vw,3.6rem)", fontWeight:800, letterSpacing:"0.01em", lineHeight:1.05, margin:"0.35rem 0 0.1rem",
+            background:`linear-gradient(120deg, ${T.sky}, ${T.gold})`, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>{ourDate}</div>
+          {m && (
+            <button onClick={()=>onOpenMoonth(cal.moonthIdx)} style={{ background:"transparent", border:"none", cursor:"pointer", padding:0 }}>
+              <span style={{ fontFamily:DISPLAY, fontSize:"1rem", fontWeight:700, color:T.text }}>Day {cal.day} · {m.name} · Year {cal.calYear}</span>
+            </button>
+          )}
+          <div style={{ fontFamily:SANS, fontSize:"0.62rem", fontWeight:500, color:T.textSoft, marginTop:"0.45rem", letterSpacing:"0.03em" }}>
+            {weekday} &nbsp;·&nbsp; {TODAY_GREG.toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})} <span style={{ opacity:0.6 }}>(Gregorian)</span>
+          </div>
         </div>
-        {m && (
-          <button onClick={()=>onOpenMoonth(cal.moonthIdx)} style={{ background:"transparent", border:"none", cursor:"pointer", padding:0, marginTop:"0.15rem" }}>
-            <span style={{ fontFamily:DISPLAY, fontSize:"1.05rem", fontWeight:700, color:T.gold }}>{weekday} · {m.name} · Day {cal.day}</span>
-          </button>
-        )}
       </div>
+
+      {/* Where we are in the sky */}
+      <CardShell grad={`linear-gradient(140deg, #6ab8f0, #a071c4)`}>
+        <Label>WHERE WE ARE IN THE SKY</Label>
+        <div style={{ display:"flex", alignItems:"flex-start", gap:"0.6rem", padding:"0.35rem 0", borderBottom:`1px solid ${T.border}` }}>
+          <span style={{ fontSize:"1.1rem", width:22, textAlign:"center" }}>{season.glyph}</span>
+          <div style={{ flex:1 }}>
+            <span style={{ fontFamily:DISPLAY, fontSize:"0.82rem", fontWeight:700, color:T.text }}>Season · {season.name}</span>
+            <div style={{ fontFamily:SANS, fontSize:"0.7rem", color:T.textMid }}>{season.span}</div>
+          </div>
+        </div>
+        <div style={{ display:"flex", alignItems:"flex-start", gap:"0.6rem", padding:"0.5rem 0", borderBottom:`1px solid ${T.border}` }}>
+          <span style={{ fontSize:"1.1rem", width:22, textAlign:"center" }}>☉</span>
+          <div style={{ flex:1 }}>
+            <span style={{ fontFamily:DISPLAY, fontSize:"0.82rem", fontWeight:700, color:T.text }}>The Sun · {sign[0]} {sign[1]}</span>
+            <div style={{ fontFamily:SANS, fontSize:"0.7rem", color:T.textMid }}>In {sign[0]} by the old 12 signs — but sitting in <b>{constel}</b>, one of the 13 constellations the Sun truly crosses.</div>
+          </div>
+        </div>
+        <div style={{ display:"flex", alignItems:"flex-start", gap:"0.6rem", padding:"0.5rem 0 0.2rem" }}>
+          <span style={{ fontSize:"1.1rem", width:22, textAlign:"center" }}>{GREAT_AGE.glyph}</span>
+          <div style={{ flex:1 }}>
+            <span style={{ fontFamily:DISPLAY, fontSize:"0.82rem", fontWeight:700, color:T.text }}>The Great Age</span>
+            <div style={{ fontFamily:SANS, fontSize:"0.7rem", color:T.textMid }}>{GREAT_AGE.text}</div>
+          </div>
+        </div>
+      </CardShell>
 
       {/* Tonight hero — always a night sky */}
       <div style={{ borderRadius:"22px", padding:"1.6px", background:`linear-gradient(140deg, #f0c541, #6ab8f0)`, boxShadow:T.shadow, marginBottom:"1rem" }}>

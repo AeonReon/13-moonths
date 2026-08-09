@@ -1,4 +1,14 @@
-# 13 Moonths — Daily-Driver Roadmap
+# The Sky Clock — Daily-Driver Roadmap
+
+> **Renamed "The Sky Clock" (2026-08-09)** — the framing is "read the time from the sky";
+> the 13×28 calendar is the clock's face. Folder/repo stay `13-moonths`. Front page ("Now"
+> tab) leads with today's date in OUR calendar big + bold (DD/MM/YY = day/moonth/year, e.g.
+> 04/09/01), the Gregorian date small beneath as the conversion reference, then a "Where we
+> are in the sky" card: the **season** (named quarters — Kindling/Greening/Ripening/Resting,
+> solstice→equinox), the **Sun's sign vs its real constellation** (computed — 12 tropical
+> signs vs the 13 the Sun actually crosses incl. Ophiuchus; today Leo-by-sign / Cancer-by-sky),
+> and the **Great Age** (Pisces→Aquarius, stated as belief).
+
 
 The goal: turn the calendar from a reference chart into an app you *want to open every
 day*. Same feeling as the Conscious Parenting app — beautiful, calm, a small daily draw.
