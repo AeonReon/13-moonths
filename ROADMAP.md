@@ -28,9 +28,15 @@ engagement. Three cards built:
   (Imbolc/Beltane/Lughnasadh/Lion's Gate 8-8/Samhain), framed "notice for yourself".
 - **Sky wisdom**: 24 rotating lines (Vitruvius, ancestors, navigators, farmers), attributed
   or reflective, never metaphysics-as-fact.
-Deferred by user for v1: the **"I looked up tonight" noticing streak** (build next — it
-rewards the real behaviour). To add with verified date tables: **Mercury retrograde,
-eclipses, meteor showers** (accurate dates needed — don't fabricate; fetch/verify first).
+v2 (2026-08-09) added: **location-aware sun times** (real sunset + "stars out"/nautical dusk
+via the standard sunrise/sunset algorithm, validated vs Belfast; geolocation with graceful
+fallback), the **"I looked up tonight" streak** (localStorage, consecutive-night counter),
+a **next-event countdown card**, and a **share button**.
+
+Still to add (honest data required — don't fabricate; fetch/verify first): **Mercury
+retrograde, eclipses, meteor-shower peaks** as verified date tables, and **tonight's visible
+planets** (needs a real ephemeris — skipped rather than faked). Also possible: accurate
+**moonrise/set** times (harder than sunset; needs a lunar position routine).
 
 ## The daily-driver layers (build after style lands, one at a time)
 
