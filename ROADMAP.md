@@ -33,10 +33,18 @@ via the standard sunrise/sunset algorithm, validated vs Belfast; geolocation wit
 fallback), the **"I looked up tonight" streak** (localStorage, consecutive-night counter),
 a **next-event countdown card**, and a **share button**.
 
-Still to add (honest data required — don't fabricate; fetch/verify first): **Mercury
-retrograde, eclipses, meteor-shower peaks** as verified date tables, and **tonight's visible
-planets** (needs a real ephemeris — skipped rather than faked). Also possible: accurate
-**moonrise/set** times (harder than sunset; needs a lunar position routine).
+v3 (2026-08-09) added the real sky-watcher layer, all computed (not faked), validated in Node
+(Sun cross-check exact; Saturn/Jupiter retrogrades match reality):
+- **Planets tonight** — Schlyter ephemeris (Mercury→Saturn); scans sunset→sunrise, reports each
+  naked-eye planet above the horizon with its best altitude, compass direction, time of night,
+  and a computed **retrograde** flag (from day-over-day ecliptic longitude).
+- **Meteor watch** — the 9 established annual showers with active windows + peaks + ZHR; shows
+  the active one, nights-to-peak, and best viewing time. (Perseids live now.)
+
+Still to add (honest data required): **eclipses** (solar/lunar, verified table), accurate
+**moonrise/set** (needs a lunar rise/set routine), and **ISS passes** (needs live TLE — likely
+skip offline). Planet magnitudes are qualitative descriptors, not computed numbers (avoids
+fake precision from ignoring phase angle).
 
 ## The daily-driver layers (build after style lands, one at a time)
 

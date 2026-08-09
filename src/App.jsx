@@ -287,6 +287,116 @@ function streakOf(list) {
   return n;
 }
 
+// ─── PLANET POSITIONS (Schlyter's method — validated vs the Sun & known retrogrades) ─
+const sind = x => Math.sin(d2r(x)), cosd = x => Math.cos(d2r(x));
+const asind = x => r2d(Math.asin(x)), atan2d = (y,x) => r2d(Math.atan2(y,x));
+const rev360 = x => { x%=360; return x<0 ? x+360 : x; };
+function dayNumber(date) {
+  const Y=date.getUTCFullYear(), M=date.getUTCMonth()+1, D=date.getUTCDate();
+  const UT=date.getUTCHours()+date.getUTCMinutes()/60+date.getUTCSeconds()/3600;
+  return 367*Y - Math.floor(7*(Y+Math.floor((M+9)/12))/4) + Math.floor(275*M/9) + D - 730530 + UT/24;
+}
+function sunRect(d) {
+  const w=282.9404+4.70935e-5*d, e=0.016709-1.151e-9*d, M=rev360(356.0470+0.9856002585*d);
+  let E=M + r2d(1)*e*sind(M)*(1+e*cosd(M));
+  for (let k=0;k<12;k++){ const dE=(E - r2d(1)*e*sind(E) - M)/(1 - e*cosd(E)); E-=dE; if(Math.abs(dE)<5e-4)break; }
+  const xv=cosd(E)-e, yv=Math.sqrt(1-e*e)*sind(E);
+  const v=atan2d(yv,xv), r=Math.sqrt(xv*xv+yv*yv), lon=rev360(v+w);
+  return { xs:r*cosd(lon), ys:r*sind(lon), ecl:23.4393-3.563e-7*d, Ls:rev360(w+M) };
+}
+const PLANET_EL = {
+  Mercury:d=>({N:48.3313+3.24587e-5*d,i:7.0047+5.0e-8*d,w:29.1241+1.01444e-5*d,a:0.387098,e:0.205635+5.59e-10*d,M:168.6562+4.0923344368*d}),
+  Venus:  d=>({N:76.6799+2.4659e-5*d,i:3.3946+2.75e-8*d,w:54.8910+1.38374e-5*d,a:0.723330,e:0.006773-1.302e-9*d,M:48.0052+1.6021302244*d}),
+  Mars:   d=>({N:49.5574+2.11081e-5*d,i:1.8497-1.78e-8*d,w:286.5016+2.92961e-5*d,a:1.523688,e:0.093405+2.516e-9*d,M:18.6021+0.5240207766*d}),
+  Jupiter:d=>({N:100.4542+2.76854e-5*d,i:1.3030-1.557e-7*d,w:273.8777+1.64505e-5*d,a:5.20256,e:0.048498+4.469e-9*d,M:19.8950+0.0830853001*d}),
+  Saturn: d=>({N:113.6634+2.3898e-5*d,i:2.4886-1.081e-7*d,w:339.3939+2.97661e-5*d,a:9.55475,e:0.055546-9.499e-9*d,M:316.9670+0.0334442282*d}),
+};
+function planetPos(name,d) {
+  const {N,i,w,a,e,M}=PLANET_EL[name](d);
+  let E=M + r2d(1)*e*sind(M)*(1+e*cosd(M));
+  for (let k=0;k<12;k++){ const dE=(E - r2d(1)*e*sind(E) - M)/(1 - e*cosd(E)); E-=dE; if(Math.abs(dE)<5e-4)break; }
+  const xv=a*(cosd(E)-e), yv=a*Math.sqrt(1-e*e)*sind(E);
+  const v=atan2d(yv,xv), r=Math.sqrt(xv*xv+yv*yv);
+  const xh=r*(cosd(N)*cosd(v+w)-sind(N)*sind(v+w)*cosd(i));
+  const yh=r*(sind(N)*cosd(v+w)+cosd(N)*sind(v+w)*cosd(i));
+  const zh=r*(sind(v+w)*sind(i));
+  const s=sunRect(d), xg=xh+s.xs, yg=yh+s.ys, zg=zh, ecl=s.ecl;
+  const xe=xg, ye=yg*cosd(ecl)-zg*sind(ecl), ze=yg*sind(ecl)+zg*cosd(ecl);
+  return { RA:rev360(atan2d(ye,xe)), Dec:atan2d(ze,Math.sqrt(xe*xe+ye*ye)), lonEcl:rev360(atan2d(yg,xg)), Ls:s.Ls };
+}
+function altAzOf(RA,Dec,date,lat,lng,Ls) {
+  const UT=date.getUTCHours()+date.getUTCMinutes()/60+date.getUTCSeconds()/3600;
+  const LST=rev360(Ls+180)/15 + UT + lng/15, HA=rev360(LST*15-RA);
+  const x=cosd(HA)*cosd(Dec), z=sind(Dec), y=sind(HA)*cosd(Dec);
+  const xhor=x*sind(lat)-z*cosd(lat), zhor=x*cosd(lat)+z*sind(lat);
+  return { alt:asind(zhor), az:rev360(atan2d(y,xhor)+180) };
+}
+const PLANETS = {
+  Mercury:{glyph:"☿", desc:"elusive and low", color:"#c9a86a"},
+  Venus:  {glyph:"♀", desc:"brilliant", color:"#f0d9a0"},
+  Mars:   {glyph:"♂", desc:"reddish", color:"#e0714a"},
+  Jupiter:{glyph:"♃", desc:"brilliant white", color:"#e8d5a8"},
+  Saturn: {glyph:"♄", desc:"golden and steady", color:"#d8c07a"},
+};
+const COMPASS = ["north","north-east","east","south-east","south","south-west","west","north-west"];
+// Scan sunset→sunrise; return each naked-eye planet that climbs above the horizon, with its best moment.
+function planetsTonight(date, lat, lng) {
+  const sunset = sunEvent(date, lat, lng, 90.833, false);
+  const sunrise = sunEvent(new Date(date.getTime()+86400000), lat, lng, 90.833, true);
+  if (!sunset || !sunrise) return [];
+  const out = [];
+  for (const name of Object.keys(PLANETS)) {
+    let best = { alt:-90 };
+    for (let t=sunset.getTime()+1800000; t<sunrise.getTime(); t+=1800000) {
+      const inst=new Date(t), dd=dayNumber(inst), pp=planetPos(name,dd), aa=altAzOf(pp.RA,pp.Dec,inst,lat,lng,pp.Ls);
+      if (aa.alt>best.alt) best={ alt:aa.alt, az:aa.az, t:inst };
+    }
+    if (best.alt > 8) {
+      const dd=dayNumber(date); let dl=planetPos(name,dd+2).lonEcl-planetPos(name,dd).lonEcl;
+      if (dl>180) dl-=360; if (dl<-180) dl+=360;
+      const h=best.t.getHours();
+      const when = (h>=17&&h<23) ? "this evening" : (h>=4&&h<9) ? "before dawn" : "late at night";
+      const height = best.alt<22 ? "low in the" : best.alt>62 ? "high in the" : "in the";
+      out.push({ name, ...PLANETS[name], alt:Math.round(best.alt), where:`${height} ${COMPASS[Math.round(best.az/45)%8]}`, when, retro:dl<0 });
+    }
+  }
+  return out.sort((a,b)=>b.alt-a.alt);
+}
+
+// ─── METEOR SHOWERS (well-established annual showers) ──────────────────────────
+const METEOR_SHOWERS = [
+  { name:"Quadrantids",    from:[11,28], to:[0,12],  peak:[0,3],   zhr:110, best:"before dawn" },
+  { name:"Lyrids",         from:[3,16],  to:[3,25],  peak:[3,22],  zhr:18,  best:"before dawn" },
+  { name:"Eta Aquariids",  from:[3,19],  to:[4,28],  peak:[4,6],   zhr:50,  best:"before dawn" },
+  { name:"Delta Aquariids",from:[6,12],  to:[7,23],  peak:[6,30],  zhr:25,  best:"after midnight" },
+  { name:"Perseids",       from:[6,17],  to:[7,24],  peak:[7,12],  zhr:100, best:"after midnight" },
+  { name:"Orionids",       from:[9,2],   to:[10,7],  peak:[9,21],  zhr:20,  best:"before dawn" },
+  { name:"Leonids",        from:[10,6],  to:[10,30], peak:[10,17], zhr:15,  best:"before dawn" },
+  { name:"Geminids",       from:[11,4],  to:[11,20], peak:[11,14], zhr:120, best:"after 10pm" },
+  { name:"Ursids",         from:[11,17], to:[11,26], peak:[11,22], zhr:10,  best:"before dawn" },
+];
+function activeShower(date) {
+  const y=date.getFullYear();
+  const inWin = s => {
+    const from=new Date(y, s.from[0], s.from[1]);
+    let to=new Date(y, s.to[0], s.to[1]);
+    if (s.to[0] < s.from[0]) { // wraps year-end
+      if (date >= from) to=new Date(y+1, s.to[0], s.to[1]);
+      else return new Date(y-1, s.from[0], s.from[1]) <= date && date <= new Date(y, s.to[0], s.to[1]);
+    }
+    return date>=from && date<=to;
+  };
+  const active = METEOR_SHOWERS.filter(inWin);
+  if (!active.length) return null;
+  const withPeak = active.map(s => {
+    let pk=new Date(y, s.peak[0], s.peak[1]);
+    if (s.to[0] < s.from[0] && s.peak[0] <= s.to[0] && date.getMonth() >= s.from[0]) pk=new Date(y+1, s.peak[0], s.peak[1]);
+    return { ...s, daysToPeak: Math.round((pk-new Date(date.getFullYear(),date.getMonth(),date.getDate()))/86400000) };
+  });
+  withPeak.sort((a,b)=>Math.abs(a.daysToPeak)-Math.abs(b.daysToPeak));
+  return withPeak[0];
+}
+
 // ─── THEMES ───────────────────────────────────────────────────────────────────
 const THEMES = {
   dark: {
@@ -543,7 +653,9 @@ function TodayView({ T, onOpenMoonth }) {
     );
   }
   useEffect(() => { if (!loc && locState==="idle") askLocation(); }, []);
-  const times = loc ? skyTimes(TODAY_GREG, loc.lat, loc.lng) : null;
+  const times   = loc ? skyTimes(TODAY_GREG, loc.lat, loc.lng) : null;
+  const planets = loc ? planetsTonight(TODAY_GREG, loc.lat, loc.lng) : [];
+  const shower  = activeShower(TODAY_GREG);
 
   // Look-up streak
   const [lookups, setLookups] = useState(loadLookups);
@@ -625,6 +737,47 @@ function TodayView({ T, onOpenMoonth }) {
           </div>
         </div>
       </div>
+
+      {/* Meteor watch */}
+      {shower && (
+        <CardShell grad={`linear-gradient(140deg, #6ab8f0, #a071c4)`}>
+          <div style={{ display:"flex", alignItems:"center", gap:"0.9rem" }}>
+            <div style={{ fontSize:"2rem" }}>☄️</div>
+            <div style={{ flex:1 }}>
+              <Label>METEOR WATCH</Label>
+              <div style={{ fontFamily:DISPLAY, fontSize:"1.02rem", fontWeight:700, color:T.text }}>{shower.name}
+                <span style={{ fontFamily:SANS, fontSize:"0.66rem", fontWeight:600, color:T.textSoft, marginLeft:"0.5rem" }}>
+                  {shower.daysToPeak>1 ? `peak in ${shower.daysToPeak} nights` : shower.daysToPeak===1 ? "peaks tomorrow" : shower.daysToPeak===0 ? "peaks tonight" : "just past peak"}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div style={{ fontFamily:SANS, fontSize:"0.84rem", lineHeight:1.55, color:T.textMid, marginTop:"0.5rem" }}>
+            Up to about {shower.zhr} meteors an hour at its peak under a dark sky, best {shower.best}. Find a spot away from the lights, let your eyes adjust for ten minutes, and just watch.
+          </div>
+        </CardShell>
+      )}
+
+      {/* Planets tonight */}
+      {loc && (
+        <CardShell grad={`linear-gradient(140deg, #e0a54a, #6ab8f0)`}>
+          <Label>PLANETS TONIGHT</Label>
+          {planets.length===0 ? (
+            <div style={{ fontFamily:SANS, fontSize:"0.84rem", lineHeight:1.5, color:T.textMid }}>No bright planets are above the horizon tonight — the Moon and the stars have the sky to themselves.</div>
+          ) : planets.map(p => (
+            <div key={p.name} style={{ display:"flex", alignItems:"center", gap:"0.7rem", padding:"0.4rem 0", borderBottom:`1px solid ${T.border}` }}>
+              <span style={{ fontSize:"1.3rem", color:p.color, width:24, textAlign:"center", textShadow:"0 0 8px rgba(0,0,0,0.15)" }}>{p.glyph}</span>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontFamily:DISPLAY, fontSize:"0.86rem", fontWeight:700, color:T.text }}>
+                  {p.name}
+                  {p.retro && <span style={{ fontFamily:SANS, fontSize:"0.54rem", fontWeight:600, color:"#a071c4", background:"rgba(160,113,196,0.14)", border:"1px solid rgba(160,113,196,0.4)", borderRadius:"2rem", padding:"0.06rem 0.4rem", marginLeft:"0.4rem" }}>retrograde</span>}
+                </div>
+                <div style={{ fontFamily:SANS, fontSize:"0.7rem", color:T.textMid }}>{p.desc} · {p.where}, {p.when}</div>
+              </div>
+            </div>
+          ))}
+        </CardShell>
+      )}
 
       {/* Look-up streak */}
       <CardShell grad={`linear-gradient(140deg, #e0a54a, #f6c33f)`}>
