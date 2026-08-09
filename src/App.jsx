@@ -43,6 +43,23 @@ const MOONTH_IMAGES = {
   "winters-dream": "/moonths/winters-dream.jpg",
 };
 
+// Longer "about this moonth" copy for the pop-up cards (slug → paragraph).
+const ABOUT = {
+  "rising-sun":    "The year's first moonth, born just after the winter solstice as the light begins its slow return. Days are short and cold, but every sunrise now climbs a little higher than the last. A time for quiet beginnings and small intentions.",
+  "morning-dew":   "Deep winter stillness. The world holds its breath under frost and mist, and the first moisture beads on the grass at dawn. The nights are long and dark — the best of the whole year for watching the stars.",
+  "waking-tree":   "The sap begins to rise and buds swell on bare branches. Life is stirring underground long before it shows above. A moonth of patience, as the earth quietly prepares to wake.",
+  "open-door":     "The spring equinox falls here, when day and night stand equal and the year swings open. From now until midsummer the light wins a little more each day. A threshold moonth — step through it.",
+  "the-hive":      "Everything comes alive. Bees return to the flowers, the days stretch long, and the whole countryside hums with activity. A moonth of energy, growth and abundance.",
+  "pixie-tricks":  "High, wild spring. Old folklore said this was when spirits and pixies were most at play — a gentle reminder to stay alert and keep your wits. The living world is at its greenest and most mischievous.",
+  "high-heaven":   "The summer solstice — the longest day and the peak of the sun's power. The sky sits at its highest and brightest. For thousands of years this was a moonth of bonfires and celebration.",
+  "golden-gate":   "The first harvest begins and the fields turn to gold. Abundance stands at the threshold, ready to be gathered in. A moonth of gratitude and gathering.",
+  "falling-vine":  "The last sweetness of the year. Fruit ripens and drops, the vines hang heavy, and the light turns amber. Summer is beginning to let go.",
+  "dark-fen":      "Mist settles over the marshes and the world begins to turn inward. The autumn equinox falls near here, tipping the balance toward the dark. A reflective, quieting moonth.",
+  "forgiven":      "The trees stand bare against an open sky and the year asks to be released. A moonth of letting go, of forgiveness, and of clear, cold nights.",
+  "wolves-delve":  "Deep autumn turning to winter. Creatures dig in and the earth seems to hold its breath. The nights grow long and the stars turn sharp and bright.",
+  "winters-dream": "The final moonth, dreaming toward the year's end and the winter solstice. The world sleeps under frost, and the longest night waits — after which the light returns and the wheel turns again.",
+};
+
 const SOLAR_EVENTS = {
   solstice_summer: { symbol:"☀️", label:"Summer Solstice", note:"The sun reaches its highest point. Peak of light.",  color:"#b85c00", bg:"linear-gradient(135deg,#ffe0a0,#ffd070)", border:"#d4880a" },
   solstice_winter: { symbol:"❄️", label:"Winter Solstice", note:"The longest night. From here the light returns.",    color:"#1a6090", bg:"linear-gradient(135deg,#c8e8f8,#a8d4ef)", border:"#2a80b0" },
@@ -119,6 +136,16 @@ function getAstroForDate(date) {
 
 function astrosForMoonth(calYear, i) {
   return ASTRO_EVENTS.filter(ev => { const c=gregorianToCalendar(ev.date); return c&&!c.isHollow&&c.moonthIdx===i; });
+}
+
+// The one significant sky thing that headlines a moonth, if any.
+function moonthSpecial(i) {
+  const evs = astrosForMoonth(1, i);
+  const solar = evs.find(e => SOLAR_EVENTS[e.type]);
+  if (solar) return SOLAR_EVENTS[solar.type].label;
+  const fulls = evs.filter(e => e.type === "full_moon").length;
+  if (fulls >= 2) return "Two full moons";
+  return null;
 }
 
 const TODAY_GREG = new Date();
@@ -530,114 +557,189 @@ function TodayView({ T, onOpenMoonth }) {
 function GridView({ T, calYear, onSelectMoonth }) {
   return (
     <div style={{ animation:"fadeUp 0.4s ease" }}>
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(148px,1fr))", gap:"0.7rem", marginBottom:"1rem" }}>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(100px,1fr))", gap:"0.5rem" }}>
         {MOONTHS.map((m,i) => {
           const isCurrent = TODAY_CAL && !TODAY_CAL.isHollow && TODAY_CAL.moonthIdx===i;
           const astros = astrosForMoonth(calYear,i);
           const src = MOONTH_IMAGES[m.slug];
           return (
             <div key={i} className="gtile" onClick={()=>onSelectMoonth(i)} style={{
-              cursor:"pointer", borderRadius:"15px", padding:"1.4px",
+              cursor:"pointer", borderRadius:"13px", padding:"1.2px",
               background:`linear-gradient(140deg, ${m.accent}, ${m.accent2})`,
               boxShadow: isCurrent ? `0 0 0 2px ${T.gold}, ${T.shadowSm}` : T.shadowSm,
               position:"relative",
             }}>
-              <div style={{ position:"relative", borderRadius:"13.6px", overflow:"hidden", aspectRatio:"4 / 5", background:m.grad }}>
+              <div style={{ position:"relative", borderRadius:"11.8px", overflow:"hidden", aspectRatio:"1 / 1", background:m.grad }}>
                 {src
                   ? <img src={src} alt={m.name} style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" }}/>
-                  : <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"2.4rem", opacity:0.9 }}>{m.symbol}</div>}
+                  : <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"2rem", opacity:0.9 }}>{m.symbol}</div>}
                 <div style={{ position:"absolute", inset:0, background:CELESTIAL, mixBlendMode:"screen" }} />
                 <div style={{ position:"absolute", inset:0, background:SCRIM }} />
                 {/* event dots */}
-                <div style={{ position:"absolute", top:"0.4rem", left:"0.45rem", display:"flex", gap:"0.2rem" }}>
-                  {astros.slice(0,4).map((ev,j) => <span key={j} style={{ fontSize:"0.72rem", filter:"drop-shadow(0 1px 1px rgba(0,0,0,0.5))" }}>{ASTRO_ICONS[ev.type]}</span>)}
+                <div style={{ position:"absolute", top:"0.28rem", left:"0.32rem", display:"flex", gap:"0.12rem" }}>
+                  {astros.slice(0,4).map((ev,j) => <span key={j} style={{ fontSize:"0.6rem", filter:"drop-shadow(0 1px 1px rgba(0,0,0,0.5))" }}>{ASTRO_ICONS[ev.type]}</span>)}
                 </div>
                 {/* number + name */}
-                <div style={{ position:"absolute", left:"0.55rem", right:"0.5rem", bottom:"0.5rem" }}>
-                  <div style={{ fontFamily:DISPLAY, fontSize:"1.55rem", fontWeight:800, color:"#fff", opacity:0.62, lineHeight:0.9, textShadow:"0 2px 6px rgba(0,0,0,0.5)" }}>{String(m.num).padStart(2,"0")}</div>
-                  <div style={{ fontFamily:DISPLAY, fontSize:"0.82rem", fontWeight:700, color:"#fff", lineHeight:1.1, textShadow:"0 1px 6px rgba(0,0,0,0.7)" }}>{m.name}</div>
+                <div style={{ position:"absolute", left:"0.4rem", right:"0.35rem", bottom:"0.35rem" }}>
+                  <div style={{ fontFamily:DISPLAY, fontSize:"1.15rem", fontWeight:800, color:"#fff", opacity:0.6, lineHeight:0.85, textShadow:"0 2px 6px rgba(0,0,0,0.5)" }}>{String(m.num).padStart(2,"0")}</div>
+                  <div style={{ fontFamily:DISPLAY, fontSize:"0.66rem", fontWeight:700, color:"#fff", lineHeight:1.05, textShadow:"0 1px 6px rgba(0,0,0,0.75)" }}>{m.name}</div>
                 </div>
               </div>
               {isCurrent && (
-                <div style={{ position:"absolute", top:"0.45rem", right:"0.45rem", fontFamily:DISPLAY, fontSize:"0.46rem", fontWeight:700, letterSpacing:"0.1em", background:T.gold, color:"#1a1206", borderRadius:"2rem", padding:"0.14rem 0.45rem", boxShadow:"0 2px 6px rgba(0,0,0,0.35)" }}>NOW</div>
+                <div style={{ position:"absolute", top:"0.3rem", right:"0.3rem", fontFamily:DISPLAY, fontSize:"0.42rem", fontWeight:700, letterSpacing:"0.1em", background:T.gold, color:"#1a1206", borderRadius:"2rem", padding:"0.12rem 0.4rem", boxShadow:"0 2px 6px rgba(0,0,0,0.35)" }}>NOW</div>
               )}
             </div>
           );
         })}
         {/* Hollow Day tile */}
-        <div style={{ borderRadius:"15px", border:`1.4px dashed ${T.border}`, aspectRatio:"4 / 5", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:"0.3rem", color:T.textSoft, background:T.surface, boxShadow:T.shadowSm }}>
-          <div style={{ fontSize:"1.4rem" }}>✦</div>
-          <div style={{ fontFamily:DISPLAY, fontWeight:700, fontSize:"0.74rem", color:T.textMid }}>Hollow Day</div>
-          <div style={{ fontSize:"0.56rem", textAlign:"center", lineHeight:1.4, padding:"0 0.5rem" }}>Dec 24 · the breath between years</div>
+        <div style={{ borderRadius:"13px", border:`1.2px dashed ${T.border}`, aspectRatio:"1 / 1", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:"0.15rem", color:T.textSoft, background:T.surface, boxShadow:T.shadowSm }}>
+          <div style={{ fontSize:"1.1rem" }}>✦</div>
+          <div style={{ fontFamily:DISPLAY, fontWeight:700, fontSize:"0.6rem", color:T.textMid }}>Hollow Day</div>
+          <div style={{ fontSize:"0.46rem", textAlign:"center", lineHeight:1.35, padding:"0 0.3rem" }}>Dec 24</div>
         </div>
       </div>
+      <div style={{ textAlign:"center", fontSize:"0.6rem", color:T.textSoft, marginTop:"0.8rem", fontFamily:SANS }}>Tap a moonth to open it</div>
     </div>
   );
 }
 
-// ─── CARDS VIEW ───────────────────────────────────────────────────────────────
+// ─── CARDS VIEW (Days Out events style — image left, text right, tap for more) ─
 function YearView({ T, calYear, onSelectMoonth }) {
+  const [openIdx, setOpenIdx] = useState(null);
   return (
-    <div style={{ animation:"fadeUp 0.4s ease" }}>
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(250px,1fr))", gap:"1.1rem", marginBottom:"1.1rem" }}>
+    <div style={{ maxWidth:640, margin:"0 auto", animation:"fadeUp 0.4s ease" }}>
+      <div style={{ display:"flex", flexDirection:"column", gap:"0.8rem", marginBottom:"1rem" }}>
         {MOONTHS.map((m,i) => {
           const isCurrent = TODAY_CAL && !TODAY_CAL.isHollow && TODAY_CAL.moonthIdx===i;
-          const s      = calendarToGregorian(calYear,i,1);
-          const e      = calendarToGregorian(calYear,i,28);
-          const dr     = `${s.toLocaleDateString("en-GB",{day:"numeric",month:"short"})} – ${e.toLocaleDateString("en-GB",{day:"numeric",month:"short"})}`;
-          const astros = astrosForMoonth(calYear,i);
-          const solar  = astros.filter(ev => SOLAR_EVENTS[ev.type]);
-          const moons  = astros.filter(ev => !SOLAR_EVENTS[ev.type]).map(ev => ASTRO_ICONS[ev.type]);
-
+          const s   = calendarToGregorian(calYear,i,1);
+          const e   = calendarToGregorian(calYear,i,28);
+          const dr  = `${s.toLocaleDateString("en-GB",{day:"numeric",month:"short"})} – ${e.toLocaleDateString("en-GB",{day:"numeric",month:"short"})}`;
+          const special = moonthSpecial(i);
+          const src = MOONTH_IMAGES[m.slug];
           return (
-            <div key={i} className="mcard" onClick={()=>onSelectMoonth(i)} style={{
-              cursor:"pointer", borderRadius:"20px", padding:"1.6px",
+            <div key={i} className="mcard" onClick={()=>setOpenIdx(i)} style={{
+              cursor:"pointer", borderRadius:"18px", padding:"1.5px",
               background:`linear-gradient(140deg, ${m.accent}, ${m.accent2})`,
               boxShadow: isCurrent ? `0 0 0 2px ${T.gold}, ${T.shadow}` : T.shadowSm,
               position:"relative",
             }}>
-              <div style={{ background:T.card, borderRadius:"18.5px", overflow:"hidden" }}>
-                <Hero m={m} moonIcons={moons} tall={false} />
-                <div style={{ padding:"0.75rem 0.95rem 0.95rem" }}>
-                  <div style={{ fontSize:"0.62rem", fontWeight:600, color:T.textSoft, letterSpacing:"0.02em", marginBottom:"0.35rem" }}>{dr}</div>
-                  <div style={{ fontSize:"0.76rem", color:T.textMid, lineHeight:1.5, marginBottom: (solar.length||moons.length) ? "0.6rem" : 0 }}>{m.desc}</div>
-                  <div style={{ display:"flex", flexWrap:"wrap", gap:"0.35rem" }}>
-                    {solar.map((ev,j) => {
-                      const se = SOLAR_EVENTS[ev.type];
-                      return (
-                        <span key={j} style={{ display:"inline-flex", alignItems:"center", gap:"0.28rem", background:se.bg, border:`1px solid ${se.border}`, borderRadius:"2rem", padding:"0.18rem 0.5rem" }}>
-                          <span style={{ fontSize:"0.8rem" }}>{se.symbol}</span>
-                          <span style={{ fontFamily:DISPLAY, fontSize:"0.56rem", color:se.color, fontWeight:600 }}>{se.label}</span>
-                        </span>
-                      );
-                    })}
-                    {moons.length>0 && (
-                      <span style={{ display:"inline-flex", alignItems:"center", gap:"0.3rem", background:T.goldSoft, border:`1px solid ${T.border}`, borderRadius:"2rem", padding:"0.18rem 0.55rem" }}>
-                        {moons.map((ic,j)=><span key={j} style={{ fontSize:"0.78rem" }}>{ic}</span>)}
-                        <span style={{ fontFamily:DISPLAY, fontSize:"0.56rem", color:T.textMid, fontWeight:600 }}>{moons.length} moon{moons.length>1?"s":""}</span>
-                      </span>
-                    )}
-                  </div>
+              <div style={{ display:"flex", background:T.card, borderRadius:"16.5px", overflow:"hidden", minHeight:118 }}>
+                {/* image left */}
+                <div style={{ position:"relative", width:118, flexShrink:0, background:m.grad }}>
+                  {src
+                    ? <img src={src} alt={m.name} style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" }}/>
+                    : <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"2rem" }}>{m.symbol}</div>}
+                  <div style={{ position:"absolute", inset:0, background:CELESTIAL, mixBlendMode:"screen" }} />
+                  <div style={{ position:"absolute", top:"0.4rem", left:"0.45rem", fontFamily:DISPLAY, fontSize:"1.1rem", fontWeight:800, color:"#fff", opacity:0.85, textShadow:"0 2px 6px rgba(0,0,0,0.6)" }}>{String(m.num).padStart(2,"0")}</div>
+                </div>
+                {/* text right */}
+                <div style={{ flex:1, minWidth:0, padding:"0.7rem 0.85rem", display:"flex", flexDirection:"column", justifyContent:"center" }}>
+                  <div style={{ fontFamily:DISPLAY, fontSize:"1.05rem", fontWeight:700, color:T.text, lineHeight:1.1 }}>{m.name}</div>
+                  <div style={{ fontFamily:SANS, fontSize:"0.6rem", fontWeight:600, color:T.textSoft, letterSpacing:"0.02em", margin:"0.15rem 0 0.35rem" }}>{dr}</div>
+                  <div style={{ fontFamily:SANS, fontSize:"0.74rem", color:T.textMid, lineHeight:1.45, display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical", overflow:"hidden" }}>{m.desc}.</div>
+                  {special && (
+                    <div style={{ display:"inline-flex", alignSelf:"flex-start", alignItems:"center", gap:"0.25rem", marginTop:"0.4rem", background:T.goldSoft, border:`1px solid ${T.gold}`, borderRadius:"2rem", padding:"0.14rem 0.5rem" }}>
+                      <span style={{ fontSize:"0.7rem" }}>✦</span>
+                      <span style={{ fontFamily:DISPLAY, fontSize:"0.54rem", fontWeight:600, color:T.gold, letterSpacing:"0.02em" }}>{special}</span>
+                    </div>
+                  )}
                 </div>
               </div>
               {isCurrent && (
-                <div style={{ position:"absolute", top:"0.7rem", right:"0.7rem", fontFamily:DISPLAY, fontSize:"0.5rem", letterSpacing:"0.12em", fontWeight:700, background:T.gold, color:"#1a1206", borderRadius:"2rem", padding:"0.18rem 0.55rem", boxShadow:"0 2px 8px rgba(0,0,0,0.3)" }}>NOW</div>
+                <div style={{ position:"absolute", top:"0.55rem", right:"0.55rem", fontFamily:DISPLAY, fontSize:"0.48rem", letterSpacing:"0.12em", fontWeight:700, background:T.gold, color:"#1a1206", borderRadius:"2rem", padding:"0.16rem 0.5rem", boxShadow:"0 2px 8px rgba(0,0,0,0.3)" }}>NOW</div>
               )}
             </div>
           );
         })}
       </div>
 
-      <div style={{ background:T.surface, border:`1px dashed ${T.border}`, borderRadius:"14px", padding:"0.85rem", textAlign:"center", color:T.textSoft, fontSize:"0.64rem", letterSpacing:"0.06em", boxShadow:T.shadowSm }}>
-        ✦ &nbsp; THE HOLLOW DAY · Dec 24 · Outside all moonths · The breath between years &nbsp; ✦
+      {openIdx!==null && (
+        <MoonthModal T={T} i={openIdx} calYear={calYear} onClose={()=>setOpenIdx(null)}
+          onOpenMoonth={(idx)=>{ setOpenIdx(null); onSelectMoonth(idx); }} />
+      )}
+    </div>
+  );
+}
+
+// ─── Modal shell (shared) ─────────────────────────────────────────────────────
+function Modal({ T, onClose, children, maxWidth=460 }) {
+  return (
+    <div onClick={onClose} style={{
+      position:"fixed", inset:0, zIndex:60, background:"rgba(6,10,20,0.55)",
+      backdropFilter:"blur(4px)", WebkitBackdropFilter:"blur(4px)",
+      display:"flex", alignItems:"center", justifyContent:"center", padding:"1rem",
+      animation:"fadeUp 0.2s ease",
+    }}>
+      <div onClick={e=>e.stopPropagation()} style={{
+        position:"relative", width:"100%", maxWidth, maxHeight:"86vh", overflowY:"auto",
+        borderRadius:"22px", background:T.card, boxShadow:T.shadow,
+        border:`1px solid ${T.border}`,
+      }}>
+        <button onClick={onClose} aria-label="Close" style={{
+          position:"absolute", top:"0.7rem", right:"0.7rem", zIndex:2,
+          width:34, height:34, borderRadius:"50%", cursor:"pointer",
+          background:"rgba(0,0,0,0.4)", color:"#fff", border:"1px solid rgba(255,255,255,0.25)",
+          fontSize:"1rem", lineHeight:1, backdropFilter:"blur(4px)",
+        }}>✕</button>
+        {children}
       </div>
     </div>
+  );
+}
+
+// ─── MOONTH POP-UP CARD ───────────────────────────────────────────────────────
+function MoonthModal({ T, i, calYear, onClose, onOpenMoonth }) {
+  const m = MOONTHS[i];
+  const s = calendarToGregorian(calYear,i,1);
+  const e = calendarToGregorian(calYear,i,28);
+  const dr = `${s.toLocaleDateString("en-GB",{day:"numeric",month:"short"})} – ${e.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}`;
+  const astros = astrosForMoonth(calYear,i);
+  const moonIcons = astros.filter(ev=>!SOLAR_EVENTS[ev.type]).map(ev=>ASTRO_ICONS[ev.type]);
+  const special = moonthSpecial(i);
+  const about = ABOUT[m.slug] || m.desc;
+
+  return (
+    <Modal T={T} onClose={onClose}>
+      <div style={{ borderRadius:"22px 22px 0 0", overflow:"hidden" }}>
+        <Hero m={m} moonIcons={moonIcons} tall={true} />
+      </div>
+      <div style={{ padding:"1.1rem 1.3rem 1.4rem" }}>
+        <div style={{ fontFamily:SANS, fontSize:"0.64rem", fontWeight:600, color:T.textSoft, letterSpacing:"0.03em" }}>MOONTH {m.num} · {dr}</div>
+        {special && (
+          <div style={{ display:"inline-flex", alignItems:"center", gap:"0.3rem", marginTop:"0.6rem", background:T.goldSoft, border:`1px solid ${T.gold}`, borderRadius:"2rem", padding:"0.2rem 0.6rem" }}>
+            <span style={{ fontSize:"0.8rem" }}>✦</span>
+            <span style={{ fontFamily:DISPLAY, fontSize:"0.6rem", fontWeight:600, color:T.gold }}>{special}</span>
+          </div>
+        )}
+        <p style={{ fontFamily:SANS, fontSize:"0.92rem", lineHeight:1.6, color:T.text, marginTop:"0.9rem", marginBottom:0 }}>{about}</p>
+
+        {astros.length>0 && (
+          <div style={{ marginTop:"1.1rem", borderTop:`1px solid ${T.border}`, paddingTop:"0.9rem" }}>
+            <div style={{ fontFamily:DISPLAY, fontSize:"0.58rem", fontWeight:600, letterSpacing:"0.14em", color:T.textSoft, marginBottom:"0.6rem" }}>SKY THIS MOONTH</div>
+            {astros.map((ev,j) => (
+              <div key={j} style={{ display:"flex", alignItems:"center", gap:"0.6rem", padding:"0.35rem 0" }}>
+                <span style={{ fontSize:"1.1rem", width:22, textAlign:"center" }}>{ASTRO_ICONS[ev.type]}</span>
+                <span style={{ fontFamily:SANS, fontSize:"0.78rem", color:T.text }}>{ev.label}</span>
+                <span style={{ fontFamily:SANS, fontSize:"0.64rem", color:T.textSoft, marginLeft:"auto" }}>{ev.date.toLocaleDateString("en-GB",{day:"numeric",month:"long"})}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button onClick={()=>onOpenMoonth(i)} style={{
+          marginTop:"1.2rem", width:"100%", padding:"0.72rem", borderRadius:"2rem", cursor:"pointer",
+          background:`linear-gradient(135deg,${m.accent},${m.accent2})`, border:"none", color:"#fff",
+          fontFamily:DISPLAY, fontWeight:600, fontSize:"0.8rem", letterSpacing:"0.02em", boxShadow:T.shadowSm,
+        }}>Open the full moonth →</button>
+      </div>
+    </Modal>
   );
 }
 
 // ─── MOONTH VIEW ──────────────────────────────────────────────────────────────
 function MoonthView({ T, calYear, moonthIdx, onPrev, onNext, onBack }) {
   const m = MOONTHS[moonthIdx];
+  const [dayModal, setDayModal] = useState(null);
 
   const days = Array.from({length:28},(_,i) => {
     const dayNum  = i+1;
@@ -714,7 +816,8 @@ function MoonthView({ T, calYear, moonthIdx, onPrev, onNext, onBack }) {
           const isMoonDay = weekDay===0;
 
           return (
-            <div key={dayNum} style={{
+            <div key={dayNum} className="gtile" onClick={()=>setDayModal({dayNum,greg,astro,weekDay,isToday})} style={{
+              cursor:"pointer",
               background: hasSolar ? se.bg : isToday ? T.goldSoft : T.surface,
               border:`1px solid ${hasSolar ? se.border : isToday ? T.gold : isMoonDay ? T.sky : T.border}`,
               borderRadius:"10px", padding:"0.4rem 0.1rem", textAlign:"center", minHeight:60,
@@ -755,7 +858,49 @@ function MoonthView({ T, calYear, moonthIdx, onPrev, onNext, onBack }) {
           )}
         </div>
       )}
+
+      {dayModal && (
+        <DayModal T={T} m={m} day={dayModal} onClose={()=>setDayModal(null)} />
+      )}
     </div>
+  );
+}
+
+// ─── DAY POP-UP ───────────────────────────────────────────────────────────────
+function DayModal({ T, m, day, onClose }) {
+  const { dayNum, greg, astro, weekDay, isToday } = day;
+  const phase = moonPhase(greg);
+  const cal   = gregorianToCalendar(greg);
+  return (
+    <Modal T={T} onClose={onClose} maxWidth={380}>
+      <div style={{ padding:"1.6rem 1.4rem 1.5rem", textAlign:"center" }}>
+        <div style={{ fontFamily:DISPLAY, fontSize:"0.6rem", fontWeight:600, letterSpacing:"0.14em", color:m.accent, marginBottom:"0.5rem" }}>{DAYS_FULL[weekDay]?.toUpperCase()}</div>
+        <div style={{ fontFamily:DISPLAY, fontSize:"2.6rem", fontWeight:800, color:T.text, lineHeight:1 }}>Day {dayNum}</div>
+        <div style={{ fontFamily:SANS, fontSize:"0.82rem", color:T.textMid, marginTop:"0.4rem" }}>{m.name} · Year {cal?.calYear ?? 1}</div>
+        <div style={{ fontFamily:SANS, fontSize:"0.72rem", color:T.textSoft, marginTop:"0.15rem" }}>{greg.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
+        {isToday && <div style={{ display:"inline-block", marginTop:"0.7rem", fontFamily:DISPLAY, fontSize:"0.55rem", fontWeight:700, letterSpacing:"0.12em", background:T.gold, color:"#1a1206", borderRadius:"2rem", padding:"0.18rem 0.7rem" }}>TODAY</div>}
+
+        {/* moon phase for the night */}
+        <div style={{ marginTop:"1.2rem", borderTop:`1px solid ${T.border}`, paddingTop:"1rem", display:"flex", alignItems:"center", justifyContent:"center", gap:"0.7rem" }}>
+          <span style={{ fontSize:"2rem", filter:"drop-shadow(0 0 8px rgba(255,240,200,0.4))" }}>{phase.emoji}</span>
+          <div style={{ textAlign:"left" }}>
+            <div style={{ fontFamily:DISPLAY, fontSize:"0.9rem", fontWeight:700, color:T.text }}>{phase.name}</div>
+            <div style={{ fontFamily:SANS, fontSize:"0.68rem", color:T.textSoft }}>{phase.illum}% lit</div>
+          </div>
+        </div>
+
+        {astro.length>0 && (
+          <div style={{ marginTop:"1rem", display:"flex", flexWrap:"wrap", gap:"0.4rem", justifyContent:"center" }}>
+            {astro.map((ev,i) => (
+              <span key={i} style={{ display:"inline-flex", alignItems:"center", gap:"0.3rem", background:T.goldSoft, border:`1px solid ${T.gold}`, borderRadius:"2rem", padding:"0.2rem 0.65rem" }}>
+                <span style={{ fontSize:"0.85rem" }}>{ASTRO_ICONS[ev.type]}</span>
+                <span style={{ fontFamily:DISPLAY, fontSize:"0.6rem", fontWeight:600, color:T.gold }}>{ev.label}</span>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </Modal>
   );
 }
 
