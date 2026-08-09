@@ -8,10 +8,13 @@ they train the memory), so the app's job is to make the rhythm feel natural and 
 ## Style (getting this right first makes everything else easier)
 - **Fonts:** Poppins (display) + Inter (body) — same as Days Out. ✅ done
 - **Photo-led cards** with per-moonth gradient outline + celestial overlay (grounded but
-  magical). ✅ card + grid built; 1/13 real images (Falling Vine).
+  magical). ✅ card + grid built; **13/13 real images in** (first-page-of-Google pass —
+  "close is fine, we'll refine later"). Morning Dew has a faint pngtree watermark, and
+  Pixie Tricks / Wolves Delve are illustrations not photos — flagged to swap in a later pass.
 - **Light + dark mode**, persisted. ✅ done
 - **Grid view** — all 13 at a glance. ✅ done (default landing)
-- Next: source the other 12 hero images.
+- **Bottom tab bar** (Calendar / Cards / Convert) replacing the old dumped legend. ✅ done
+- Next: the daily-driver content layers below.
 
 ## The daily-driver layers (build after style lands, one at a time)
 

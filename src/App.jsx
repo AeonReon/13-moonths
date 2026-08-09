@@ -28,7 +28,19 @@ const MOONTHS = [
 // Real photos live in public/moonths/<slug>.jpg — sourced one at a time.
 // Any moonth not listed here shows a celestial placeholder gradient.
 const MOONTH_IMAGES = {
-  "falling-vine": "/moonths/falling-vine.jpg",
+  "rising-sun":    "/moonths/rising-sun.jpg",
+  "morning-dew":   "/moonths/morning-dew.jpg",
+  "waking-tree":   "/moonths/waking-tree.jpg",
+  "open-door":     "/moonths/open-door.jpg",
+  "the-hive":      "/moonths/the-hive.jpg",
+  "pixie-tricks":  "/moonths/pixie-tricks.jpg",
+  "high-heaven":   "/moonths/high-heaven.jpg",
+  "golden-gate":   "/moonths/golden-gate.jpg",
+  "falling-vine":  "/moonths/falling-vine.jpg",
+  "dark-fen":      "/moonths/dark-fen.jpg",
+  "forgiven":      "/moonths/forgiven.jpg",
+  "wolves-delve":  "/moonths/wolves-delve.jpg",
+  "winters-dream": "/moonths/winters-dream.jpg",
 };
 
 const SOLAR_EVENTS = {
@@ -258,17 +270,6 @@ export default function App() {
         <div style={{ fontFamily:SANS, fontSize:"0.66rem", fontWeight:500, color:T.textSoft, marginTop:"0.35rem", letterSpacing:"0.12em" }}>
           Moon · Air · Water · Earth · Fire · Star · Sun
         </div>
-        <nav style={{ display:"flex", justifyContent:"center", gap:"0.5rem", marginTop:"1.2rem" }}>
-          {[["grid","Grid"],["year","Cards"],["converter","Converter"]].map(([v,lbl]) => (
-            <button key={v} className="nbtn" onClick={()=>setView(v)} style={{
-              background:view===v ? T.goldSoft : "transparent",
-              border:`1px solid ${view===v ? T.gold : T.border}`,
-              color:view===v ? T.gold : T.textMid,
-              padding:"0.42rem 1.15rem", borderRadius:"2rem", cursor:"pointer",
-              fontFamily:DISPLAY, fontWeight:600, fontSize:"0.74rem", letterSpacing:"0.02em",
-            }}>{lbl}</button>
-          ))}
-        </nav>
       </header>
 
       <main style={{ padding:"1.5rem 1rem 5rem", maxWidth:1040, margin:"0 auto", position:"relative", zIndex:1 }}>
@@ -278,14 +279,46 @@ export default function App() {
         {view==="converter" && <ConverterView T={T} input={converterInput} setInput={setConverterInput} result={converterResult} onConvert={handleConverter} />}
       </main>
 
-      {/* ── Footer legend ── */}
-      <div style={{ position:"fixed", bottom:0, left:0, right:0, background:mode==="dark"?"rgba(15,27,46,0.94)":"rgba(251,245,233,0.94)", backdropFilter:"blur(8px)", borderTop:`1px solid ${T.border}`, padding:"0.55rem 1rem", display:"flex", justifyContent:"center", gap:"1.2rem", flexWrap:"wrap", zIndex:10 }}>
-        {Object.entries(ASTRO_ICONS).map(([type,icon]) => (
-          <span key={type} style={{ fontFamily:SANS, fontSize:"0.64rem", fontWeight:500, color:T.textMid, letterSpacing:"0.02em", display:"inline-flex", alignItems:"center", gap:"0.28rem" }}>
-            <span style={{ fontSize:"0.85rem" }}>{icon}</span> {type.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase())}
-          </span>
-        ))}
-      </div>
+      {/* ── Bottom tab bar ── */}
+      <BottomNav T={T} mode={mode} view={view} setView={setView} />
+    </div>
+  );
+}
+
+// ─── BOTTOM TAB BAR ───────────────────────────────────────────────────────────
+function BottomNav({ T, mode, view, setView }) {
+  const items = [
+    { v:"grid",      label:"Calendar",  icon:"🗓️", match:["grid","moonth"] },
+    { v:"year",      label:"Cards",     icon:"🖼️", match:["year"] },
+    { v:"converter", label:"Convert",   icon:"🔄", match:["converter"] },
+  ];
+  return (
+    <div style={{ position:"fixed", left:0, right:0, bottom:0, display:"flex", justifyContent:"center", padding:"0 0.75rem calc(0.6rem + env(safe-area-inset-bottom))", pointerEvents:"none", zIndex:20 }}>
+      <nav style={{
+        pointerEvents:"auto", display:"flex", gap:"0.25rem",
+        background:mode==="dark"?"rgba(23,38,63,0.86)":"rgba(255,255,255,0.9)",
+        backdropFilter:"blur(14px)", WebkitBackdropFilter:"blur(14px)",
+        border:`1px solid ${T.border}`, borderRadius:"2rem",
+        padding:"0.35rem 0.4rem", boxShadow:T.shadow,
+      }}>
+        {items.map(it => {
+          const active = it.match.includes(view);
+          return (
+            <button key={it.v} onClick={()=>setView(it.v)} style={{
+              display:"flex", flexDirection:"column", alignItems:"center", gap:"0.1rem",
+              background:active ? T.goldSoft : "transparent",
+              border:`1px solid ${active ? T.gold : "transparent"}`,
+              color:active ? T.gold : T.textMid,
+              borderRadius:"1.5rem", padding:"0.4rem 1.1rem", cursor:"pointer",
+              fontFamily:DISPLAY, fontWeight:600, fontSize:"0.62rem", letterSpacing:"0.02em",
+              transition:"all 0.18s",
+            }}>
+              <span style={{ fontSize:"1.05rem", lineHeight:1, filter:active?"none":"grayscale(0.2)" }}>{it.icon}</span>
+              {it.label}
+            </button>
+          );
+        })}
+      </nav>
     </div>
   );
 }
