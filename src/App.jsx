@@ -1,5 +1,9 @@
 import { useState, useEffect } from "react";
 
+// Days Out typography — Poppins for display, Inter for body.
+const DISPLAY = "'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif";
+const SANS    = "'Inter',system-ui,-apple-system,'Segoe UI',sans-serif";
+
 const DAYS_FULL  = ["Moon Day","Air Day","Water Day","Earth Day","Fire Day","Star Day","Sun Day"];
 const DAYS_SHORT = ["Moon","Air","Water","Earth","Fire","Star","Sun"];
 
@@ -101,6 +105,10 @@ function getAstroForDate(date) {
   );
 }
 
+function astrosForMoonth(calYear, i) {
+  return ASTRO_EVENTS.filter(ev => { const c=gregorianToCalendar(ev.date); return c&&!c.isHollow&&c.moonthIdx===i; });
+}
+
 const TODAY_GREG = new Date();
 const TODAY_CAL  = gregorianToCalendar(TODAY_GREG);
 
@@ -156,7 +164,7 @@ const CELESTIAL =
   "radial-gradient(1px 1px at 58% 8%, rgba(255,255,255,0.6), transparent 60%)," +
   "radial-gradient(circle at 84% 22%, rgba(255,248,224,0.45), transparent 34%)";
 
-const SCRIM = "linear-gradient(to top, rgba(6,10,20,0.78) 0%, rgba(6,10,20,0.30) 42%, rgba(6,10,20,0) 68%)";
+const SCRIM = "linear-gradient(to top, rgba(6,10,20,0.80) 0%, rgba(6,10,20,0.32) 44%, rgba(6,10,20,0) 70%)";
 
 export default function App() {
   const [mode, setMode] = useState(() => {
@@ -167,7 +175,7 @@ export default function App() {
   const T = THEMES[mode] || THEMES.light;
   useEffect(() => { try { localStorage.setItem("moonths-theme", mode); } catch {} }, [mode]);
 
-  const [view, setView]                       = useState("year");
+  const [view, setView]                       = useState("grid");
   const [selectedMoonth, setSelectedMoonth]   = useState(TODAY_CAL?.moonthIdx ?? 0);
   const [calYear]                             = useState(TODAY_CAL?.calYear ?? 1);
   const [converterInput, setConverterInput]   = useState("");
@@ -183,8 +191,10 @@ export default function App() {
     setConverterResult(`${DAYS_FULL[cal.weekDay ?? 0]}  ·  ${m.name}  ·  Day ${cal.day}  ·  Year ${cal.calYear}`);
   }
 
+  function openMoonth(i) { setSelectedMoonth(i); setView("moonth"); }
+
   return (
-    <div style={{ minHeight:"100vh", background:T.bg, color:T.text, fontFamily:"'Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif", transition:"background 0.3s, color 0.3s" }}>
+    <div style={{ minHeight:"100vh", background:T.bg, color:T.text, fontFamily:SANS, transition:"background 0.3s, color 0.3s" }}>
       <style>{`
         @keyframes fadeUp     { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
         @keyframes todayRing  { 0%,100%{box-shadow:0 0 0 2px rgba(92,172,238,0.30)} 50%{box-shadow:0 0 0 5px rgba(92,172,238,0.50)} }
@@ -195,6 +205,8 @@ export default function App() {
         .mcard { transition:transform 0.22s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.22s; }
         .mcard:hover { transform:translateY(-4px); }
         .mcard:hover .hero-img { transform:scale(1.05); }
+        .gtile { transition:transform 0.2s cubic-bezier(0.34,1.56,0.64,1); }
+        .gtile:hover { transform:translateY(-3px) scale(1.02); }
         .nbtn { transition:all 0.17s; }
         .nbtn:hover { transform:translateY(-1px); }
         .stars-bg { position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden; }
@@ -221,7 +233,7 @@ export default function App() {
       <header style={{
         background:T.headerGrad,
         borderBottom:`1px solid ${T.border}`,
-        padding:"1.9rem 1.5rem 1.3rem",
+        padding:"1.7rem 1.5rem 1.2rem",
         textAlign:"center",
         boxShadow:T.shadowSm,
         position:"relative",
@@ -235,40 +247,41 @@ export default function App() {
           fontSize:"1.1rem", lineHeight:1, boxShadow:T.shadowSm, transition:"all 0.2s",
         }}>{mode==="dark" ? "☀️" : "🌙"}</button>
 
-        <div style={{ fontSize:"0.6rem", letterSpacing:"0.3em", color:T.textSoft, marginBottom:"0.35rem" }}>
+        <div style={{ fontFamily:SANS, fontSize:"0.6rem", fontWeight:600, letterSpacing:"0.28em", color:T.textSoft, marginBottom:"0.4rem" }}>
           THE LIVING CALENDAR · YEAR {calYear}
         </div>
         <h1 style={{
-          margin:0, fontSize:"clamp(1.8rem,5vw,3rem)", fontWeight:400, letterSpacing:"0.06em",
+          margin:0, fontFamily:DISPLAY, fontSize:"clamp(1.8rem,5vw,3rem)", fontWeight:800, letterSpacing:"-0.01em",
           background:`linear-gradient(120deg, ${T.sky} 0%, ${T.gold} 55%, #e08040 100%)`,
           WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent",
         }}>13 Moonths</h1>
-        <div style={{ fontSize:"0.66rem", color:T.textSoft, marginTop:"0.3rem", letterSpacing:"0.14em" }}>
+        <div style={{ fontFamily:SANS, fontSize:"0.66rem", fontWeight:500, color:T.textSoft, marginTop:"0.35rem", letterSpacing:"0.12em" }}>
           Moon · Air · Water · Earth · Fire · Star · Sun
         </div>
-        <nav style={{ display:"flex", justifyContent:"center", gap:"0.5rem", marginTop:"1.3rem" }}>
-          {[["year","Year"],["moonth","Moonth"],["converter","Converter"]].map(([v,lbl]) => (
+        <nav style={{ display:"flex", justifyContent:"center", gap:"0.5rem", marginTop:"1.2rem" }}>
+          {[["grid","Grid"],["year","Cards"],["converter","Converter"]].map(([v,lbl]) => (
             <button key={v} className="nbtn" onClick={()=>setView(v)} style={{
               background:view===v ? T.goldSoft : "transparent",
               border:`1px solid ${view===v ? T.gold : T.border}`,
               color:view===v ? T.gold : T.textMid,
-              padding:"0.4rem 1.1rem", borderRadius:"2rem", cursor:"pointer",
-              fontSize:"0.72rem", letterSpacing:"0.07em", fontFamily:"inherit",
+              padding:"0.42rem 1.15rem", borderRadius:"2rem", cursor:"pointer",
+              fontFamily:DISPLAY, fontWeight:600, fontSize:"0.74rem", letterSpacing:"0.02em",
             }}>{lbl}</button>
           ))}
         </nav>
       </header>
 
-      <main style={{ padding:"1.6rem 1rem 5rem", maxWidth:1040, margin:"0 auto", position:"relative", zIndex:1 }}>
-        {view==="year"      && <YearView T={T} calYear={calYear} onSelectMoonth={i=>{setSelectedMoonth(i);setView("moonth");}} />}
-        {view==="moonth"    && <MoonthView T={T} calYear={calYear} moonthIdx={selectedMoonth} onPrev={()=>setSelectedMoonth(m=>Math.max(0,m-1))} onNext={()=>setSelectedMoonth(m=>Math.min(12,m+1))} />}
+      <main style={{ padding:"1.5rem 1rem 5rem", maxWidth:1040, margin:"0 auto", position:"relative", zIndex:1 }}>
+        {view==="grid"      && <GridView T={T} calYear={calYear} onSelectMoonth={openMoonth} />}
+        {view==="year"      && <YearView T={T} calYear={calYear} onSelectMoonth={openMoonth} />}
+        {view==="moonth"    && <MoonthView T={T} calYear={calYear} moonthIdx={selectedMoonth} onPrev={()=>setSelectedMoonth(m=>Math.max(0,m-1))} onNext={()=>setSelectedMoonth(m=>Math.min(12,m+1))} onBack={()=>setView("grid")} />}
         {view==="converter" && <ConverterView T={T} input={converterInput} setInput={setConverterInput} result={converterResult} onConvert={handleConverter} />}
       </main>
 
       {/* ── Footer legend ── */}
       <div style={{ position:"fixed", bottom:0, left:0, right:0, background:mode==="dark"?"rgba(15,27,46,0.94)":"rgba(251,245,233,0.94)", backdropFilter:"blur(8px)", borderTop:`1px solid ${T.border}`, padding:"0.55rem 1rem", display:"flex", justifyContent:"center", gap:"1.2rem", flexWrap:"wrap", zIndex:10 }}>
         {Object.entries(ASTRO_ICONS).map(([type,icon]) => (
-          <span key={type} style={{ fontSize:"0.64rem", color:T.textMid, letterSpacing:"0.03em", display:"inline-flex", alignItems:"center", gap:"0.28rem" }}>
+          <span key={type} style={{ fontFamily:SANS, fontSize:"0.64rem", fontWeight:500, color:T.textMid, letterSpacing:"0.02em", display:"inline-flex", alignItems:"center", gap:"0.28rem" }}>
             <span style={{ fontSize:"0.85rem" }}>{icon}</span> {type.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase())}
           </span>
         ))}
@@ -290,11 +303,8 @@ function Hero({ m, moonIcons, tall }) {
       ) : (
         <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"3.6rem", opacity:0.85, animation:"symbolFloat 5s ease-in-out infinite" }}>{m.symbol}</div>
       )}
-      {/* celestial sparkle + moon glow */}
       <div style={{ position:"absolute", inset:0, background:CELESTIAL, mixBlendMode:"screen", pointerEvents:"none" }} />
-      {/* legibility scrim */}
       <div style={{ position:"absolute", inset:0, background:SCRIM, pointerEvents:"none" }} />
-      {/* moon-phase badges, top-left */}
       {moonIcons.length>0 && (
         <div style={{ position:"absolute", top:"0.6rem", left:"0.7rem", display:"flex", gap:"0.35rem" }}>
           {moonIcons.map((ic,j) => (
@@ -302,18 +312,66 @@ function Hero({ m, moonIcons, tall }) {
           ))}
         </div>
       )}
-      {/* title, bottom-left */}
       <div style={{ position:"absolute", left:"0.95rem", bottom:"0.75rem", right:"0.95rem" }}>
         <div style={{ display:"flex", alignItems:"baseline", gap:"0.55rem" }}>
-          <span style={{ fontSize:"1.5rem", fontWeight:700, color:"#fff", opacity:0.75, lineHeight:1, textShadow:"0 2px 8px rgba(0,0,0,0.5)" }}>{String(m.num).padStart(2,"0")}</span>
-          <span style={{ fontSize:"1.35rem", fontWeight:600, color:"#fff", letterSpacing:"0.02em", textShadow:"0 2px 10px rgba(0,0,0,0.6)" }}>{m.name}</span>
+          <span style={{ fontFamily:DISPLAY, fontSize:"1.45rem", fontWeight:800, color:"#fff", opacity:0.7, lineHeight:1, textShadow:"0 2px 8px rgba(0,0,0,0.5)" }}>{String(m.num).padStart(2,"0")}</span>
+          <span style={{ fontFamily:DISPLAY, fontSize:"1.3rem", fontWeight:700, color:"#fff", letterSpacing:"0.005em", textShadow:"0 2px 10px rgba(0,0,0,0.6)" }}>{m.name}</span>
         </div>
       </div>
     </div>
   );
 }
 
-// ─── YEAR VIEW ────────────────────────────────────────────────────────────────
+// ─── GRID VIEW (all 13 at a glance) ───────────────────────────────────────────
+function GridView({ T, calYear, onSelectMoonth }) {
+  return (
+    <div style={{ animation:"fadeUp 0.4s ease" }}>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(148px,1fr))", gap:"0.7rem", marginBottom:"1rem" }}>
+        {MOONTHS.map((m,i) => {
+          const isCurrent = TODAY_CAL && !TODAY_CAL.isHollow && TODAY_CAL.moonthIdx===i;
+          const astros = astrosForMoonth(calYear,i);
+          const src = MOONTH_IMAGES[m.slug];
+          return (
+            <div key={i} className="gtile" onClick={()=>onSelectMoonth(i)} style={{
+              cursor:"pointer", borderRadius:"15px", padding:"1.4px",
+              background:`linear-gradient(140deg, ${m.accent}, ${m.accent2})`,
+              boxShadow: isCurrent ? `0 0 0 2px ${T.gold}, ${T.shadowSm}` : T.shadowSm,
+              position:"relative",
+            }}>
+              <div style={{ position:"relative", borderRadius:"13.6px", overflow:"hidden", aspectRatio:"4 / 5", background:m.grad }}>
+                {src
+                  ? <img src={src} alt={m.name} style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" }}/>
+                  : <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"2.4rem", opacity:0.9 }}>{m.symbol}</div>}
+                <div style={{ position:"absolute", inset:0, background:CELESTIAL, mixBlendMode:"screen" }} />
+                <div style={{ position:"absolute", inset:0, background:SCRIM }} />
+                {/* event dots */}
+                <div style={{ position:"absolute", top:"0.4rem", left:"0.45rem", display:"flex", gap:"0.2rem" }}>
+                  {astros.slice(0,4).map((ev,j) => <span key={j} style={{ fontSize:"0.72rem", filter:"drop-shadow(0 1px 1px rgba(0,0,0,0.5))" }}>{ASTRO_ICONS[ev.type]}</span>)}
+                </div>
+                {/* number + name */}
+                <div style={{ position:"absolute", left:"0.55rem", right:"0.5rem", bottom:"0.5rem" }}>
+                  <div style={{ fontFamily:DISPLAY, fontSize:"1.55rem", fontWeight:800, color:"#fff", opacity:0.62, lineHeight:0.9, textShadow:"0 2px 6px rgba(0,0,0,0.5)" }}>{String(m.num).padStart(2,"0")}</div>
+                  <div style={{ fontFamily:DISPLAY, fontSize:"0.82rem", fontWeight:700, color:"#fff", lineHeight:1.1, textShadow:"0 1px 6px rgba(0,0,0,0.7)" }}>{m.name}</div>
+                </div>
+              </div>
+              {isCurrent && (
+                <div style={{ position:"absolute", top:"0.45rem", right:"0.45rem", fontFamily:DISPLAY, fontSize:"0.46rem", fontWeight:700, letterSpacing:"0.1em", background:T.gold, color:"#1a1206", borderRadius:"2rem", padding:"0.14rem 0.45rem", boxShadow:"0 2px 6px rgba(0,0,0,0.35)" }}>NOW</div>
+              )}
+            </div>
+          );
+        })}
+        {/* Hollow Day tile */}
+        <div style={{ borderRadius:"15px", border:`1.4px dashed ${T.border}`, aspectRatio:"4 / 5", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:"0.3rem", color:T.textSoft, background:T.surface, boxShadow:T.shadowSm }}>
+          <div style={{ fontSize:"1.4rem" }}>✦</div>
+          <div style={{ fontFamily:DISPLAY, fontWeight:700, fontSize:"0.74rem", color:T.textMid }}>Hollow Day</div>
+          <div style={{ fontSize:"0.56rem", textAlign:"center", lineHeight:1.4, padding:"0 0.5rem" }}>Dec 24 · the breath between years</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── CARDS VIEW ───────────────────────────────────────────────────────────────
 function YearView({ T, calYear, onSelectMoonth }) {
   return (
     <div style={{ animation:"fadeUp 0.4s ease" }}>
@@ -323,7 +381,7 @@ function YearView({ T, calYear, onSelectMoonth }) {
           const s      = calendarToGregorian(calYear,i,1);
           const e      = calendarToGregorian(calYear,i,28);
           const dr     = `${s.toLocaleDateString("en-GB",{day:"numeric",month:"short"})} – ${e.toLocaleDateString("en-GB",{day:"numeric",month:"short"})}`;
-          const astros = ASTRO_EVENTS.filter(ev => { const c=gregorianToCalendar(ev.date); return c&&!c.isHollow&&c.moonthIdx===i; });
+          const astros = astrosForMoonth(calYear,i);
           const solar  = astros.filter(ev => SOLAR_EVENTS[ev.type]);
           const moons  = astros.filter(ev => !SOLAR_EVENTS[ev.type]).map(ev => ASTRO_ICONS[ev.type]);
 
@@ -337,37 +395,36 @@ function YearView({ T, calYear, onSelectMoonth }) {
               <div style={{ background:T.card, borderRadius:"18.5px", overflow:"hidden" }}>
                 <Hero m={m} moonIcons={moons} tall={false} />
                 <div style={{ padding:"0.75rem 0.95rem 0.95rem" }}>
-                  <div style={{ fontSize:"0.62rem", color:T.textSoft, letterSpacing:"0.03em", marginBottom:"0.35rem" }}>{dr}</div>
-                  <div style={{ fontSize:"0.74rem", color:T.textMid, fontStyle:"italic", lineHeight:1.5, marginBottom: (solar.length||moons.length) ? "0.6rem" : 0 }}>{m.desc}</div>
+                  <div style={{ fontSize:"0.62rem", fontWeight:600, color:T.textSoft, letterSpacing:"0.02em", marginBottom:"0.35rem" }}>{dr}</div>
+                  <div style={{ fontSize:"0.76rem", color:T.textMid, lineHeight:1.5, marginBottom: (solar.length||moons.length) ? "0.6rem" : 0 }}>{m.desc}</div>
                   <div style={{ display:"flex", flexWrap:"wrap", gap:"0.35rem" }}>
                     {solar.map((ev,j) => {
                       const se = SOLAR_EVENTS[ev.type];
                       return (
                         <span key={j} style={{ display:"inline-flex", alignItems:"center", gap:"0.28rem", background:se.bg, border:`1px solid ${se.border}`, borderRadius:"2rem", padding:"0.18rem 0.5rem" }}>
                           <span style={{ fontSize:"0.8rem" }}>{se.symbol}</span>
-                          <span style={{ fontSize:"0.56rem", color:se.color, fontWeight:600, letterSpacing:"0.02em" }}>{se.label}</span>
+                          <span style={{ fontFamily:DISPLAY, fontSize:"0.56rem", color:se.color, fontWeight:600 }}>{se.label}</span>
                         </span>
                       );
                     })}
                     {moons.length>0 && (
                       <span style={{ display:"inline-flex", alignItems:"center", gap:"0.3rem", background:T.goldSoft, border:`1px solid ${T.border}`, borderRadius:"2rem", padding:"0.18rem 0.55rem" }}>
                         {moons.map((ic,j)=><span key={j} style={{ fontSize:"0.78rem" }}>{ic}</span>)}
-                        <span style={{ fontSize:"0.56rem", color:T.textMid, fontWeight:600 }}>{moons.length} moon{moons.length>1?"s":""}</span>
+                        <span style={{ fontFamily:DISPLAY, fontSize:"0.56rem", color:T.textMid, fontWeight:600 }}>{moons.length} moon{moons.length>1?"s":""}</span>
                       </span>
                     )}
                   </div>
                 </div>
               </div>
               {isCurrent && (
-                <div style={{ position:"absolute", top:"0.7rem", right:"0.7rem", fontSize:"0.5rem", letterSpacing:"0.12em", fontWeight:700, background:T.gold, color:"#1a1206", borderRadius:"2rem", padding:"0.18rem 0.55rem", boxShadow:"0 2px 8px rgba(0,0,0,0.3)" }}>NOW</div>
+                <div style={{ position:"absolute", top:"0.7rem", right:"0.7rem", fontFamily:DISPLAY, fontSize:"0.5rem", letterSpacing:"0.12em", fontWeight:700, background:T.gold, color:"#1a1206", borderRadius:"2rem", padding:"0.18rem 0.55rem", boxShadow:"0 2px 8px rgba(0,0,0,0.3)" }}>NOW</div>
               )}
             </div>
           );
         })}
       </div>
 
-      {/* Hollow Day */}
-      <div style={{ background:T.surface, border:`1px dashed ${T.border}`, borderRadius:"14px", padding:"0.85rem", textAlign:"center", color:T.textSoft, fontSize:"0.64rem", letterSpacing:"0.08em", boxShadow:T.shadowSm }}>
+      <div style={{ background:T.surface, border:`1px dashed ${T.border}`, borderRadius:"14px", padding:"0.85rem", textAlign:"center", color:T.textSoft, fontSize:"0.64rem", letterSpacing:"0.06em", boxShadow:T.shadowSm }}>
         ✦ &nbsp; THE HOLLOW DAY · Dec 24 · Outside all moonths · The breath between years &nbsp; ✦
       </div>
     </div>
@@ -375,7 +432,7 @@ function YearView({ T, calYear, onSelectMoonth }) {
 }
 
 // ─── MOONTH VIEW ──────────────────────────────────────────────────────────────
-function MoonthView({ T, calYear, moonthIdx, onPrev, onNext }) {
+function MoonthView({ T, calYear, moonthIdx, onPrev, onNext, onBack }) {
   const m = MOONTHS[moonthIdx];
 
   const days = Array.from({length:28},(_,i) => {
@@ -394,13 +451,15 @@ function MoonthView({ T, calYear, moonthIdx, onPrev, onNext }) {
     <button onClick={onClick} disabled={disabled} style={{
       background:T.card, border:`1px solid ${disabled?T.border:T.gold}`,
       color:disabled?T.textSoft:T.gold, width:42,height:42,borderRadius:"50%",
-      cursor:disabled?"default":"pointer", fontSize:"1.3rem", fontFamily:"inherit", boxShadow:disabled?"none":T.shadowSm,
+      cursor:disabled?"default":"pointer", fontSize:"1.3rem", fontFamily:DISPLAY, boxShadow:disabled?"none":T.shadowSm,
       flexShrink:0,
     }}>{ch}</button>
   );
 
   return (
     <div style={{ maxWidth:720, margin:"0 auto", animation:"fadeUp 0.4s ease" }}>
+
+      <button onClick={onBack} style={{ background:"transparent", border:"none", color:T.textMid, fontFamily:DISPLAY, fontWeight:600, fontSize:"0.72rem", cursor:"pointer", padding:"0 0 0.6rem", display:"inline-flex", alignItems:"center", gap:"0.3rem" }}>‹ All moonths</button>
 
       {/* Hero header card */}
       <div style={{ display:"flex", alignItems:"center", gap:"0.7rem", marginBottom:"1.3rem" }}>
@@ -409,7 +468,7 @@ function MoonthView({ T, calYear, moonthIdx, onPrev, onNext }) {
           <div style={{ background:T.card, borderRadius:"20.5px", overflow:"hidden" }}>
             <Hero m={m} moonIcons={moonIcons} tall={true} />
             <div style={{ padding:"0.85rem 1.1rem 1rem", textAlign:"center" }}>
-              <div style={{ fontSize:"0.78rem", color:T.textMid, fontStyle:"italic" }}>{m.desc}</div>
+              <div style={{ fontSize:"0.8rem", color:T.textMid }}>{m.desc}</div>
             </div>
           </div>
         </div>
@@ -422,9 +481,9 @@ function MoonthView({ T, calYear, moonthIdx, onPrev, onNext }) {
         return (
           <div key={i} style={{ background:se.bg, border:`2px solid ${se.border}`, borderRadius:"18px", padding:"1.4rem 1.5rem 1.1rem", marginBottom:"1.3rem", textAlign:"center", animation:"solarPulse 3s ease infinite", boxShadow:T.shadowSm }}>
             <div style={{ fontSize:"3rem", lineHeight:1, marginBottom:"0.4rem" }}>{se.symbol}</div>
-            <div style={{ fontSize:"1.05rem", fontWeight:600, color:se.color, letterSpacing:"0.05em", marginBottom:"0.3rem" }}>{se.label}</div>
-            <div style={{ fontSize:"0.72rem", color:se.color, opacity:0.85, fontStyle:"italic", marginBottom:"0.4rem" }}>{se.note}</div>
-            <div style={{ fontSize:"0.6rem", color:se.color, opacity:0.7, letterSpacing:"0.04em" }}>
+            <div style={{ fontFamily:DISPLAY, fontSize:"1.05rem", fontWeight:700, color:se.color, letterSpacing:"0.02em", marginBottom:"0.3rem" }}>{se.label}</div>
+            <div style={{ fontSize:"0.74rem", color:se.color, opacity:0.85, marginBottom:"0.4rem" }}>{se.note}</div>
+            <div style={{ fontFamily:DISPLAY, fontSize:"0.6rem", fontWeight:600, color:se.color, opacity:0.7, letterSpacing:"0.03em" }}>
               Day {ev.dayNum} · {ev.greg.toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})}
             </div>
           </div>
@@ -435,8 +494,8 @@ function MoonthView({ T, calYear, moonthIdx, onPrev, onNext }) {
       <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:"0.3rem", marginBottom:"0.3rem" }}>
         {DAYS_SHORT.map((d,i) => (
           <div key={d} style={{
-            textAlign:"center", fontSize:"0.54rem", padding:"0.2rem 0",
-            color: i===0 ? T.gold : T.textSoft, fontWeight: i===0 ? 700 : 400, letterSpacing:"0.04em",
+            fontFamily:DISPLAY, textAlign:"center", fontSize:"0.56rem", padding:"0.2rem 0",
+            color: i===0 ? T.gold : T.textSoft, fontWeight: i===0 ? 700 : 500, letterSpacing:"0.02em",
             borderBottom: i===0 ? `2px solid ${T.gold}` : `1px solid transparent`,
           }}>{d}</div>
         ))}
@@ -459,7 +518,7 @@ function MoonthView({ T, calYear, moonthIdx, onPrev, onNext }) {
               animation:isToday?"todayRing 2.5s ease infinite":"none", boxShadow:hasSolar?T.shadowSm:"none",
             }}>
               {hasSolar && <div style={{ fontSize:"1rem", lineHeight:1 }}>{se.symbol}</div>}
-              <div style={{ fontSize:"0.9rem", color:hasSolar?se.color:isToday?T.gold:isMoonDay?T.sky:T.text, fontWeight:(hasSolar||isToday||isMoonDay)?700:400 }}>
+              <div style={{ fontFamily:DISPLAY, fontSize:"0.9rem", color:hasSolar?se.color:isToday?T.gold:isMoonDay?T.sky:T.text, fontWeight:(hasSolar||isToday||isMoonDay)?700:500 }}>
                 {dayNum}
               </div>
               <div style={{ fontSize:"0.46rem", color:hasSolar?se.color:T.textSoft, opacity:0.85 }}>
@@ -473,20 +532,20 @@ function MoonthView({ T, calYear, moonthIdx, onPrev, onNext }) {
         })}
       </div>
 
-      <div style={{ textAlign:"center", fontSize:"0.56rem", color:T.textSoft, marginTop:"0.7rem", fontStyle:"italic" }}>
+      <div style={{ textAlign:"center", fontSize:"0.6rem", color:T.textSoft, marginTop:"0.7rem" }}>
         Every moonth begins on Moon Day — the first column always marks the start of the week.
       </div>
 
       {/* Moon phases list */}
       {days.some(d=>d.astro.some(ev=>!SOLAR_EVENTS[ev.type])) && (
         <div style={{ marginTop:"1.4rem", background:T.surface, border:`1px solid ${T.border}`, borderRadius:"14px", padding:"1rem 1.2rem", boxShadow:T.shadowSm }}>
-          <div style={{ fontSize:"0.56rem", letterSpacing:"0.15em", color:T.textSoft, marginBottom:"0.7rem" }}>MOON PHASES THIS MOONTH</div>
+          <div style={{ fontFamily:DISPLAY, fontSize:"0.58rem", fontWeight:600, letterSpacing:"0.12em", color:T.textSoft, marginBottom:"0.7rem" }}>MOON PHASES THIS MOONTH</div>
           {days.filter(d=>d.astro.some(ev=>!SOLAR_EVENTS[ev.type])).map(({dayNum,greg,astro}) =>
             astro.filter(ev=>!SOLAR_EVENTS[ev.type]).map((ev,i) => (
               <div key={`${dayNum}-${i}`} style={{ display:"flex", alignItems:"center", gap:"0.7rem", padding:"0.45rem 0", borderBottom:`1px solid ${T.border}` }}>
                 <span style={{ fontSize:"1.15rem", width:24, textAlign:"center" }}>{ASTRO_ICONS[ev.type]}</span>
-                <span style={{ fontSize:"0.76rem", color:T.text }}>{ev.label}</span>
-                <span style={{ fontSize:"0.62rem", color:T.textSoft, marginLeft:"auto" }}>Day {dayNum} · {greg.toLocaleDateString("en-GB",{day:"numeric",month:"long"})}</span>
+                <span style={{ fontSize:"0.78rem", color:T.text }}>{ev.label}</span>
+                <span style={{ fontFamily:DISPLAY, fontSize:"0.62rem", fontWeight:500, color:T.textSoft, marginLeft:"auto" }}>Day {dayNum} · {greg.toLocaleDateString("en-GB",{day:"numeric",month:"long"})}</span>
               </div>
             ))
           )}
@@ -502,23 +561,23 @@ function ConverterView({ T, input, setInput, result, onConvert }) {
     <div style={{ maxWidth:460, margin:"0 auto", animation:"fadeUp 0.4s ease" }}>
       <div style={{ borderRadius:"20px", padding:"1.6px", background:"linear-gradient(140deg,#f0c541,#6ab8f0)", boxShadow:T.shadow }}>
         <div style={{ background:T.surface, borderRadius:"18.5px", padding:"2rem", textAlign:"center" }}>
-          <div style={{ fontSize:"0.6rem", letterSpacing:"0.2em", color:T.textSoft, marginBottom:"1.5rem" }}>GREGORIAN → CALENDAR CONVERTER</div>
+          <div style={{ fontFamily:DISPLAY, fontSize:"0.62rem", fontWeight:600, letterSpacing:"0.15em", color:T.textSoft, marginBottom:"1.5rem" }}>GREGORIAN → CALENDAR CONVERTER</div>
           <input type="date" value={input} onChange={e=>setInput(e.target.value)} style={{
             background:T.bg, border:`1px solid ${T.border}`, color:T.text,
-            padding:"0.7rem 1rem", borderRadius:"10px", fontSize:"0.9rem",
-            width:"100%", boxSizing:"border-box", marginBottom:"0.9rem", outline:"none", fontFamily:"inherit",
+            padding:"0.7rem 1rem", borderRadius:"10px", fontSize:"0.9rem", fontFamily:SANS,
+            width:"100%", boxSizing:"border-box", marginBottom:"0.9rem", outline:"none",
           }}/>
           <button onClick={onConvert} style={{
             background:`linear-gradient(135deg,${T.gold},#e08040)`, border:"none", color:"#fff",
             padding:"0.72rem 2rem", borderRadius:"2rem", cursor:"pointer", fontWeight:600,
-            fontSize:"0.78rem", letterSpacing:"0.08em", fontFamily:"inherit", width:"100%", boxShadow:T.shadowSm,
+            fontFamily:DISPLAY, fontSize:"0.8rem", letterSpacing:"0.02em", width:"100%", boxShadow:T.shadowSm,
           }}>Convert Date</button>
           {result && (
-            <div style={{ marginTop:"1.4rem", padding:"1rem", background:T.goldSoft, border:`1px solid ${T.gold}`, borderRadius:"12px", fontSize:"0.9rem", color:T.gold, letterSpacing:"0.03em", lineHeight:1.75 }}>
+            <div style={{ marginTop:"1.4rem", padding:"1rem", background:T.goldSoft, border:`1px solid ${T.gold}`, borderRadius:"12px", fontSize:"0.9rem", color:T.gold, letterSpacing:"0.01em", lineHeight:1.75 }}>
               {result}
             </div>
           )}
-          <div style={{ marginTop:"1.75rem", fontSize:"0.6rem", color:T.textSoft, lineHeight:2 }}>
+          <div style={{ marginTop:"1.75rem", fontSize:"0.64rem", color:T.textSoft, lineHeight:2 }}>
             The calendar begins on Dec 25, 2025<br/>
             13 moonths · 28 days each · 364 days<br/>
             The Hollow Day falls on Dec 24 each year
