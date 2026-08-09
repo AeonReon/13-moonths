@@ -243,7 +243,48 @@ function nextSkyEvent(date) {
     .sort((a,b) => a.date - b.date)[0];
   if (!upcoming) return null;
   const days = Math.ceil((upcoming.date - date)/86400000);
-  return { label:upcoming.label, days };
+  return { label:upcoming.label, type:upcoming.type, icon:ASTRO_ICONS[upcoming.type], days };
+}
+
+// ─── SUN & TWILIGHT TIMES (standard sunrise/sunset algorithm) ─────────────────
+const d2r = d => d*Math.PI/180, r2d = r => r*180/Math.PI;
+const norm = (v,max) => { v%=max; return v<0 ? v+max : v; };
+// Returns a Date for the given solar event, or null (never rises/sets that day).
+function sunEvent(date, lat, lng, zenith, rising) {
+  const startUTC = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+  const N = Math.floor((startUTC - Date.UTC(date.getFullYear(),0,0)) / 86400000);
+  const lngHour = lng / 15;
+  const t = N + ((rising ? 6 : 18) - lngHour) / 24;
+  const M = 0.9856*t - 3.289;
+  let L = norm(M + 1.916*Math.sin(d2r(M)) + 0.020*Math.sin(d2r(2*M)) + 282.634, 360);
+  let RA = norm(r2d(Math.atan(0.91764*Math.tan(d2r(L)))), 360);
+  RA += (Math.floor(L/90)*90) - (Math.floor(RA/90)*90);   // same quadrant as L
+  RA /= 15;
+  const sinDec = 0.39782*Math.sin(d2r(L));
+  const cosDec = Math.cos(Math.asin(sinDec));
+  const cosH = (Math.cos(d2r(zenith)) - sinDec*Math.sin(d2r(lat))) / (cosDec*Math.cos(d2r(lat)));
+  if (cosH > 1 || cosH < -1) return null;
+  let H = (rising ? 360 - r2d(Math.acos(cosH)) : r2d(Math.acos(cosH))) / 15;
+  const UT = norm(H + RA - 0.06571*t - 6.622 - lngHour, 24);
+  return new Date(startUTC + UT*3600000);
+}
+function skyTimes(date, lat, lng) {
+  const sunset  = sunEvent(date, lat, lng, 90.833, false);
+  const sunrise = sunEvent(date, lat, lng, 90.833, true);
+  let dark = null;                       // "stars out" ≈ nautical dusk, civil fallback in high summer
+  for (const z of [102, 96]) { const d = sunEvent(date, lat, lng, z, false); if (d) { dark = d; break; } }
+  return { sunrise, sunset, dark };
+}
+const hhmm = d => d ? d.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}) : null;
+
+// ─── LOOK-UP STREAK (localStorage) ────────────────────────────────────────────
+const dstr = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+function loadLookups() { try { return JSON.parse(localStorage.getItem("moonths-lookups") || "[]"); } catch { return []; } }
+function streakOf(list) {
+  const set = new Set(list); let n = 0; const d = new Date(TODAY_GREG);
+  if (!set.has(dstr(d))) d.setDate(d.getDate()-1);       // allow today-not-yet-logged
+  while (set.has(dstr(d))) { n++; d.setDate(d.getDate()-1); }
+  return n;
 }
 
 // ─── THEMES ───────────────────────────────────────────────────────────────────
@@ -481,13 +522,46 @@ function Hero({ m, moonIcons, tall }) {
 
 // ─── TODAY / TONIGHT VIEW (the daily driver) ──────────────────────────────────
 function TodayView({ T, onOpenMoonth }) {
-  const cal   = TODAY_CAL;
-  const m      = cal && !cal.isHollow ? MOONTHS[cal.moonthIdx] : null;
-  const phase  = moonPhase(TODAY_GREG);
-  const wisdom = dailyWisdom(TODAY_GREG);
-  const stir   = whatsStirring(TODAY_GREG);
-  const next   = nextSkyEvent(TODAY_GREG);
+  const cal    = TODAY_CAL;
+  const m       = cal && !cal.isHollow ? MOONTHS[cal.moonthIdx] : null;
+  const phase   = moonPhase(TODAY_GREG);
+  const wisdom  = dailyWisdom(TODAY_GREG);
+  const stir    = whatsStirring(TODAY_GREG);
+  const next    = nextSkyEvent(TODAY_GREG);
   const weekday = DAYS_FULL[cal && !cal.isHollow ? (cal.weekDay ?? 0) : 0];
+
+  // Location → sunset / darkness times
+  const [loc, setLoc]           = useState(() => { try { const s=localStorage.getItem("moonths-loc"); return s?JSON.parse(s):null; } catch { return null; } });
+  const [locState, setLocState] = useState(loc ? "ok" : "idle");
+  function askLocation() {
+    if (!navigator.geolocation) { setLocState("denied"); return; }
+    setLocState("asking");
+    navigator.geolocation.getCurrentPosition(
+      p => { const l={lat:p.coords.latitude,lng:p.coords.longitude}; setLoc(l); setLocState("ok"); try{localStorage.setItem("moonths-loc",JSON.stringify(l));}catch{} },
+      () => setLocState("denied"),
+      { timeout:8000, maximumAge:3600000 }
+    );
+  }
+  useEffect(() => { if (!loc && locState==="idle") askLocation(); }, []);
+  const times = loc ? skyTimes(TODAY_GREG, loc.lat, loc.lng) : null;
+
+  // Look-up streak
+  const [lookups, setLookups] = useState(loadLookups);
+  const todayStr    = dstr(TODAY_GREG);
+  const loggedToday = lookups.includes(todayStr);
+  const streak      = streakOf(lookups);
+  function logLookup() {
+    if (loggedToday) return;
+    const nextList = [...lookups, todayStr];
+    setLookups(nextList);
+    try { localStorage.setItem("moonths-lookups", JSON.stringify(nextList)); } catch {}
+  }
+
+  function shareTonight() {
+    const txt = `Tonight: ${phase.name}, ${phase.illum}% lit. ${phase.invite}`;
+    if (navigator.share) navigator.share({ title:"13 Moonths — Tonight", text:txt }).catch(()=>{});
+    else { try { navigator.clipboard.writeText(txt); } catch {} }
+  }
 
   const CardShell = ({ children, grad }) => (
     <div style={{ borderRadius:"20px", padding:"1.5px", background:grad||`linear-gradient(140deg, ${T.gold}, ${T.sky})`, boxShadow:T.shadowSm, marginBottom:"1rem" }}>
@@ -517,6 +591,7 @@ function TodayView({ T, onOpenMoonth }) {
       <div style={{ borderRadius:"22px", padding:"1.6px", background:`linear-gradient(140deg, #f0c541, #6ab8f0)`, boxShadow:T.shadow, marginBottom:"1rem" }}>
         <div style={{ position:"relative", borderRadius:"20.5px", overflow:"hidden", background:"linear-gradient(165deg,#0b1836 0%,#132a52 55%,#1b1c3a 100%)", padding:"1.5rem 1.3rem 1.4rem" }}>
           <div style={{ position:"absolute", inset:0, background:CELESTIAL, mixBlendMode:"screen", pointerEvents:"none" }} />
+          <button onClick={shareTonight} aria-label="Share tonight" style={{ position:"absolute", top:"1rem", right:"1rem", zIndex:2, background:"rgba(255,255,255,0.12)", border:"1px solid rgba(255,255,255,0.2)", color:"#fff", width:32, height:32, borderRadius:"50%", cursor:"pointer", fontSize:"0.85rem" }}>↗</button>
           <div style={{ position:"relative" }}>
             <div style={{ fontFamily:DISPLAY, fontSize:"0.58rem", fontWeight:600, letterSpacing:"0.18em", color:"rgba(220,230,250,0.7)", marginBottom:"0.6rem" }}>TONIGHT'S SKY</div>
             <div style={{ display:"flex", alignItems:"center", gap:"0.9rem" }}>
@@ -527,14 +602,66 @@ function TodayView({ T, onOpenMoonth }) {
               </div>
             </div>
             <div style={{ fontFamily:SANS, fontSize:"0.9rem", lineHeight:1.55, color:"rgba(226,236,252,0.95)", marginTop:"0.9rem" }}>{phase.invite}</div>
-            {next && (
-              <div style={{ fontFamily:SANS, fontSize:"0.66rem", color:"rgba(190,206,238,0.7)", marginTop:"0.9rem", paddingTop:"0.7rem", borderTop:"1px solid rgba(255,255,255,0.12)" }}>
-                Coming up · {next.label} in {next.days} {next.days===1?"night":"nights"}
+
+            {/* Sun / darkness times */}
+            {times && times.sunset && (
+              <div style={{ display:"flex", gap:"1.4rem", marginTop:"0.95rem", paddingTop:"0.8rem", borderTop:"1px solid rgba(255,255,255,0.12)" }}>
+                <div>
+                  <div style={{ fontFamily:SANS, fontSize:"0.58rem", letterSpacing:"0.06em", color:"rgba(190,206,238,0.65)" }}>SUN SETS</div>
+                  <div style={{ fontFamily:DISPLAY, fontSize:"1rem", fontWeight:700, color:"#fff" }}>🌇 {hhmm(times.sunset)}</div>
+                </div>
+                {times.dark && (
+                  <div>
+                    <div style={{ fontFamily:SANS, fontSize:"0.58rem", letterSpacing:"0.06em", color:"rgba(190,206,238,0.65)" }}>STARS OUT</div>
+                    <div style={{ fontFamily:DISPLAY, fontSize:"1rem", fontWeight:700, color:"#fff" }}>✨ {hhmm(times.dark)}</div>
+                  </div>
+                )}
               </div>
+            )}
+            {locState==="asking" && <div style={{ fontFamily:SANS, fontSize:"0.66rem", color:"rgba(190,206,238,0.6)", marginTop:"0.9rem" }}>Finding your sky times…</div>}
+            {locState==="denied" && (
+              <button onClick={askLocation} style={{ marginTop:"0.9rem", background:"rgba(255,255,255,0.1)", border:"1px solid rgba(255,255,255,0.25)", color:"#fff", fontFamily:SANS, fontSize:"0.66rem", padding:"0.35rem 0.8rem", borderRadius:"2rem", cursor:"pointer" }}>Enable location for exact sunset &amp; dark-sky times</button>
             )}
           </div>
         </div>
       </div>
+
+      {/* Look-up streak */}
+      <CardShell grad={`linear-gradient(140deg, #e0a54a, #f6c33f)`}>
+        <div style={{ display:"flex", alignItems:"center", gap:"0.9rem" }}>
+          <div style={{ textAlign:"center", minWidth:52 }}>
+            <div style={{ fontSize:"1.6rem", lineHeight:1 }}>🔭</div>
+            <div style={{ fontFamily:DISPLAY, fontSize:"1.15rem", fontWeight:800, color:T.gold, lineHeight:1.1 }}>{streak}</div>
+            <div style={{ fontFamily:SANS, fontSize:"0.52rem", color:T.textSoft, letterSpacing:"0.05em" }}>NIGHT{streak===1?"":"S"}</div>
+          </div>
+          <div style={{ flex:1 }}>
+            <div style={{ fontFamily:DISPLAY, fontSize:"0.95rem", fontWeight:700, color:T.text, marginBottom:"0.2rem" }}>{loggedToday ? "You looked up tonight ✨" : "Did you look up tonight?"}</div>
+            <div style={{ fontFamily:SANS, fontSize:"0.72rem", color:T.textMid, lineHeight:1.45 }}>
+              {loggedToday ? "Beautiful. The streak is what matters — not the app, the sky." : "Step outside, find the moon or a star, then tap to keep your streak."}
+            </div>
+          </div>
+          {!loggedToday && (
+            <button onClick={logLookup} style={{ flexShrink:0, background:`linear-gradient(135deg,${T.gold},#e08040)`, border:"none", color:"#fff", fontFamily:DISPLAY, fontWeight:700, fontSize:"0.72rem", padding:"0.6rem 0.9rem", borderRadius:"1.5rem", cursor:"pointer", boxShadow:T.shadowSm }}>I looked up</button>
+          )}
+        </div>
+      </CardShell>
+
+      {/* Next big event countdown */}
+      {next && (
+        <CardShell grad={`linear-gradient(140deg, ${T.sky}, #4a98d4)`}>
+          <div style={{ display:"flex", alignItems:"center", gap:"0.9rem" }}>
+            <div style={{ fontSize:"2rem" }}>{next.icon}</div>
+            <div style={{ flex:1 }}>
+              <Label>COMING UP</Label>
+              <div style={{ fontFamily:DISPLAY, fontSize:"1rem", fontWeight:700, color:T.text }}>{next.label}</div>
+            </div>
+            <div style={{ textAlign:"center" }}>
+              <div style={{ fontFamily:DISPLAY, fontSize:"1.6rem", fontWeight:800, color:T.sky, lineHeight:1 }}>{next.days}</div>
+              <div style={{ fontFamily:SANS, fontSize:"0.55rem", color:T.textSoft, letterSpacing:"0.05em" }}>{next.days===1?"NIGHT":"NIGHTS"}</div>
+            </div>
+          </div>
+        </CardShell>
+      )}
 
       {/* What's stirring */}
       <CardShell grad={`linear-gradient(140deg, #a071c4, #6ab8f0)`}>
