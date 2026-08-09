@@ -9,12 +9,28 @@ they train the memory), so the app's job is to make the rhythm feel natural and 
 - **Fonts:** Poppins (display) + Inter (body) — same as Days Out. ✅ done
 - **Photo-led cards** with per-moonth gradient outline + celestial overlay (grounded but
   magical). ✅ card + grid built; **13/13 real images in** (first-page-of-Google pass —
-  "close is fine, we'll refine later"). Morning Dew has a faint pngtree watermark, and
-  Pixie Tricks / Wolves Delve are illustrations not photos — flagged to swap in a later pass.
+  "close is fine"). Rule learned: images must be **literal + cinematic** — recognisable
+  with the text hidden (wolf, golden gateway, whole tree, open door, beehive, dove), sourced
+  with "cinematic/wallpaper/4k" queries for hero quality. Still to refine later: Morning Dew
+  (faint pngtree watermark) and Pixie Tricks (illustration, but on-theme).
 - **Light + dark mode**, persisted. ✅ done
 - **Grid view** — all 13 at a glance. ✅ done (default landing)
 - **Bottom tab bar** (Calendar / Cards / Convert) replacing the old dumped legend. ✅ done
 - Next: the daily-driver content layers below.
+
+## Today / Tonight home screen — SHIPPED v1 (2026-08-09, default landing)
+The mission: the win is getting someone to step outside and look up tonight — not app
+engagement. Three cards built:
+- **Tonight's sky** (hero, always a night gradient): computed moon phase + % lit + a
+  phase-based invitation (when/where to look). Moon math = synodic cycle from a known new
+  moon; accurate to ~a day. Plus a "coming up: X in N nights" line.
+- **What's stirring** (intrigue): full/new moon → solstice/equinox → fixed-date traditions
+  (Imbolc/Beltane/Lughnasadh/Lion's Gate 8-8/Samhain), framed "notice for yourself".
+- **Sky wisdom**: 24 rotating lines (Vitruvius, ancestors, navigators, farmers), attributed
+  or reflective, never metaphysics-as-fact.
+Deferred by user for v1: the **"I looked up tonight" noticing streak** (build next — it
+rewards the real behaviour). To add with verified date tables: **Mercury retrograde,
+eclipses, meteor showers** (accurate dates needed — don't fabricate; fetch/verify first).
 
 ## The daily-driver layers (build after style lands, one at a time)
 

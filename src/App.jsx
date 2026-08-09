@@ -124,6 +124,101 @@ function astrosForMoonth(calYear, i) {
 const TODAY_GREG = new Date();
 const TODAY_CAL  = gregorianToCalendar(TODAY_GREG);
 
+// ─── MOON PHASE (accurate to ~a day) ──────────────────────────────────────────
+const SYNODIC = 29.530588853;                  // days, new moon → new moon
+const NEW_MOON_REF = new Date(2026,0,18);       // a known new moon
+function moonPhase(date) {
+  const days = (date - NEW_MOON_REF) / 86400000;
+  let frac = (days % SYNODIC) / SYNODIC;
+  if (frac < 0) frac += 1;
+  const illum = Math.round((1 - Math.cos(2*Math.PI*frac)) / 2 * 100);
+  let name, emoji, invite;
+  if      (frac < 0.03 || frac > 0.97) { name="New Moon";        emoji="🌑"; invite="The moon is dark tonight — the perfect night to leave the lights behind and let the stars come out."; }
+  else if (frac < 0.22)                { name="Waxing Crescent"; emoji="🌒"; invite="A slim crescent follows the sun down. Catch it low in the west just after dark."; }
+  else if (frac < 0.28)                { name="First Quarter";   emoji="🌓"; invite="A half-lit moon sits high in the evening — easy to find the moment it gets dark."; }
+  else if (frac < 0.47)                { name="Waxing Gibbous";  emoji="🌔"; invite="The moon is filling out and bright in the evening sky, climbing higher each night."; }
+  else if (frac < 0.53)                { name="Full Moon";       emoji="🌕"; invite="Full moon tonight — it rises around sunset and shines all night. The one night a month you can't miss it."; }
+  else if (frac < 0.72)                { name="Waning Gibbous";  emoji="🌖"; invite="A bright moon rises later in the evening and lingers into the morning."; }
+  else if (frac < 0.78)                { name="Last Quarter";    emoji="🌗"; invite="A half moon rises around midnight and greets the early risers."; }
+  else                                 { name="Waning Crescent"; emoji="🌘"; invite="A thin crescent hangs in the east before dawn. Dark evenings make it a fine night to hunt for stars."; }
+  return { frac, illum, name, emoji, invite };
+}
+
+// ─── DAILY SKY WISDOM (rotates by day; framed as perspective, never fact) ──────
+const WISDOM = [
+  "Vitruvius taught that an architect must understand astronomy and the sky — the built world was meant to answer to the heavens.",
+  "For most of human history, the night sky was the first calendar, the first clock, and the first map.",
+  "Sailors once crossed whole oceans with nothing but the stars to steer by. The sky knew the way home.",
+  "Farmers read the moon to time the planting and the harvest. The ground listened to the sky.",
+  "Every culture that ever lived looked up and told stories about the same handful of lights.",
+  "The full moon has pulled the tides for longer than there have been eyes to watch it.",
+  "Step outside tonight — the same moon your grandparents watched is still there, waiting.",
+  "The starlight you see tonight set out on its journey long before you were born.",
+  "A clear night sky has looked almost the same for ten thousand years.",
+  "The word 'disaster' comes from old words meaning 'bad star.' We once believed the sky shaped our days.",
+  "Before clocks, people knew the hour by the height of the sun and the turn of the stars.",
+  "The moon takes about twenty-nine nights to go from dark to full and back — one moonth, the oldest measure of time.",
+  "Ancient builders aligned their temples to the sunrise on the longest and shortest days of the year.",
+  "You don't need a telescope to begin. You only need to step outside and look up.",
+  "The sky is the one ceiling everyone on earth shares.",
+  "Find where the moon rises tonight — by tomorrow it will have moved. Nothing up there stands still.",
+  "Travellers found north by a single steady star while everything else wheeled around it.",
+  "A shooting star is a speck of dust meeting the sky at enormous speed — a whole show from something smaller than a seed.",
+  "The old festivals were tied to the sky: the solstices, the equinoxes, the first full moon after.",
+  "On a truly dark night, far from town, the whole river of the galaxy returns.",
+  "To look up at night is to look back in time — you are seeing the past, arriving now.",
+  "Our ancestors had no more hours than us. They simply spent some of them looking up.",
+  "The moon has no light of its own — every bit of moonlight is sunlight, taking the long way round.",
+  "Whatever you believe about the sky, it starts the same way: go outside, and lift your head.",
+];
+function dailyWisdom(date) {
+  const dayIndex = Math.floor(date / 86400000);
+  return WISDOM[((dayIndex % WISDOM.length) + WISDOM.length) % WISDOM.length];
+}
+
+// Fixed-date sky traditions (safe, calendar-based) for the intrigue card.
+const PORTAL_DAYS = [
+  { m:1,  d:1,  title:"Imbolc",       line:"A cross-quarter day between winter and spring. Old traditions lit candles and fires to call back the light. Notice how the evenings are already lengthening." },
+  { m:4,  d:1,  title:"Beltane",      line:"A cross-quarter day welcoming the summer half of the year. Traditionally a night of bonfires and celebration. A good evening to be outdoors." },
+  { m:7,  d:1,  title:"Lughnasadh",   line:"A cross-quarter day marking the first harvest. For centuries it was a time of gathering and thanks. Notice the turn toward autumn." },
+  { m:7,  d:8,  title:"The Lion's Gate", line:"The 8/8 portal. Many spiritual traditions treat today as a peak of bright, energising sky energy. Believe it or not, it's a good excuse to step out and look up tonight." },
+  { m:9,  d:31, title:"Samhain",      line:"A cross-quarter day and the old new year — the turn into the dark half of the year. Traditionally a night to remember those who came before." },
+];
+
+function whatsStirring(date) {
+  const near = (target, tol) => Math.abs((date - target)/86400000) <= tol;
+  // 1. full / new moon within a day
+  for (const ev of ASTRO_EVENTS) {
+    if (ev.type==="full_moon" && near(ev.date,1))
+      return { title:"Full Moon", line:"Traditions the world over link the full moon to restlessness, vivid dreams and heightened feeling. Whether or not that's you, it's the best night of the month to step out and watch it blaze — notice how you feel." };
+    if (ev.type==="new_moon" && near(ev.date,1))
+      return { title:"New Moon", line:"The sky's darkest night. Many traditions treat it as a moment to pause and set an intention for what you want to grow. With no moonlight, it's also the best night for stars." };
+  }
+  // 2. solstice / equinox within two days
+  for (const ev of ASTRO_EVENTS) {
+    if (SOLAR_EVENTS[ev.type] && near(ev.date,2)) {
+      const se = SOLAR_EVENTS[ev.type];
+      return { title:se.label, line:`${se.note} For thousands of years this turn of the year was marked with fire, feasting and gathering.` };
+    }
+  }
+  // 3. fixed-date sky tradition within a day
+  for (const p of PORTAL_DAYS) {
+    const t = new Date(date.getFullYear(), p.m, p.d);
+    if (near(t,1)) return { title:p.title, line:p.line };
+  }
+  // 4. quiet night
+  return { title:"A Quiet Sky", line:"No big events tonight — which makes it perfect for the simplest thing. Go outside, let your eyes adjust for a few minutes, and just watch for a while." };
+}
+
+function nextSkyEvent(date) {
+  const upcoming = ASTRO_EVENTS
+    .filter(ev => ev.date > date)
+    .sort((a,b) => a.date - b.date)[0];
+  if (!upcoming) return null;
+  const days = Math.ceil((upcoming.date - date)/86400000);
+  return { label:upcoming.label, days };
+}
+
 // ─── THEMES ───────────────────────────────────────────────────────────────────
 const THEMES = {
   dark: {
@@ -187,7 +282,7 @@ export default function App() {
   const T = THEMES[mode] || THEMES.light;
   useEffect(() => { try { localStorage.setItem("moonths-theme", mode); } catch {} }, [mode]);
 
-  const [view, setView]                       = useState("grid");
+  const [view, setView]                       = useState("today");
   const [selectedMoonth, setSelectedMoonth]   = useState(TODAY_CAL?.moonthIdx ?? 0);
   const [calYear]                             = useState(TODAY_CAL?.calYear ?? 1);
   const [converterInput, setConverterInput]   = useState("");
@@ -273,6 +368,7 @@ export default function App() {
       </header>
 
       <main style={{ padding:"1.5rem 1rem 5rem", maxWidth:1040, margin:"0 auto", position:"relative", zIndex:1 }}>
+        {view==="today"     && <TodayView T={T} onOpenMoonth={openMoonth} />}
         {view==="grid"      && <GridView T={T} calYear={calYear} onSelectMoonth={openMoonth} />}
         {view==="year"      && <YearView T={T} calYear={calYear} onSelectMoonth={openMoonth} />}
         {view==="moonth"    && <MoonthView T={T} calYear={calYear} moonthIdx={selectedMoonth} onPrev={()=>setSelectedMoonth(m=>Math.max(0,m-1))} onNext={()=>setSelectedMoonth(m=>Math.min(12,m+1))} onBack={()=>setView("grid")} />}
@@ -288,6 +384,7 @@ export default function App() {
 // ─── BOTTOM TAB BAR ───────────────────────────────────────────────────────────
 function BottomNav({ T, mode, view, setView }) {
   const items = [
+    { v:"today",     label:"Tonight",   icon:"✨", match:["today"] },
     { v:"grid",      label:"Calendar",  icon:"🗓️", match:["grid","moonth"] },
     { v:"year",      label:"Cards",     icon:"🖼️", match:["year"] },
     { v:"converter", label:"Convert",   icon:"🔄", match:["converter"] },
@@ -351,6 +448,80 @@ function Hero({ m, moonIcons, tall }) {
           <span style={{ fontFamily:DISPLAY, fontSize:"1.3rem", fontWeight:700, color:"#fff", letterSpacing:"0.005em", textShadow:"0 2px 10px rgba(0,0,0,0.6)" }}>{m.name}</span>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── TODAY / TONIGHT VIEW (the daily driver) ──────────────────────────────────
+function TodayView({ T, onOpenMoonth }) {
+  const cal   = TODAY_CAL;
+  const m      = cal && !cal.isHollow ? MOONTHS[cal.moonthIdx] : null;
+  const phase  = moonPhase(TODAY_GREG);
+  const wisdom = dailyWisdom(TODAY_GREG);
+  const stir   = whatsStirring(TODAY_GREG);
+  const next   = nextSkyEvent(TODAY_GREG);
+  const weekday = DAYS_FULL[cal && !cal.isHollow ? (cal.weekDay ?? 0) : 0];
+
+  const CardShell = ({ children, grad }) => (
+    <div style={{ borderRadius:"20px", padding:"1.5px", background:grad||`linear-gradient(140deg, ${T.gold}, ${T.sky})`, boxShadow:T.shadowSm, marginBottom:"1rem" }}>
+      <div style={{ background:T.card, borderRadius:"18.5px", padding:"1.1rem 1.2rem" }}>{children}</div>
+    </div>
+  );
+  const Label = ({ children }) => (
+    <div style={{ fontFamily:DISPLAY, fontSize:"0.58rem", fontWeight:600, letterSpacing:"0.16em", color:T.textSoft, marginBottom:"0.5rem" }}>{children}</div>
+  );
+
+  return (
+    <div style={{ maxWidth:600, margin:"0 auto", animation:"fadeUp 0.4s ease" }}>
+
+      {/* Dateline */}
+      <div style={{ textAlign:"center", marginBottom:"1rem" }}>
+        <div style={{ fontFamily:SANS, fontSize:"0.66rem", fontWeight:500, letterSpacing:"0.06em", color:T.textSoft }}>
+          {TODAY_GREG.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"})}
+        </div>
+        {m && (
+          <button onClick={()=>onOpenMoonth(cal.moonthIdx)} style={{ background:"transparent", border:"none", cursor:"pointer", padding:0, marginTop:"0.15rem" }}>
+            <span style={{ fontFamily:DISPLAY, fontSize:"1.05rem", fontWeight:700, color:T.gold }}>{weekday} · {m.name} · Day {cal.day}</span>
+          </button>
+        )}
+      </div>
+
+      {/* Tonight hero — always a night sky */}
+      <div style={{ borderRadius:"22px", padding:"1.6px", background:`linear-gradient(140deg, #f0c541, #6ab8f0)`, boxShadow:T.shadow, marginBottom:"1rem" }}>
+        <div style={{ position:"relative", borderRadius:"20.5px", overflow:"hidden", background:"linear-gradient(165deg,#0b1836 0%,#132a52 55%,#1b1c3a 100%)", padding:"1.5rem 1.3rem 1.4rem" }}>
+          <div style={{ position:"absolute", inset:0, background:CELESTIAL, mixBlendMode:"screen", pointerEvents:"none" }} />
+          <div style={{ position:"relative" }}>
+            <div style={{ fontFamily:DISPLAY, fontSize:"0.58rem", fontWeight:600, letterSpacing:"0.18em", color:"rgba(220,230,250,0.7)", marginBottom:"0.6rem" }}>TONIGHT'S SKY</div>
+            <div style={{ display:"flex", alignItems:"center", gap:"0.9rem" }}>
+              <div style={{ fontSize:"3.2rem", lineHeight:1, filter:"drop-shadow(0 0 12px rgba(255,240,200,0.5))", animation:"symbolFloat 5s ease-in-out infinite" }}>{phase.emoji}</div>
+              <div>
+                <div style={{ fontFamily:DISPLAY, fontSize:"1.3rem", fontWeight:700, color:"#fff", lineHeight:1.1 }}>{phase.name}</div>
+                <div style={{ fontFamily:SANS, fontSize:"0.74rem", color:"rgba(200,215,245,0.85)", marginTop:"0.1rem" }}>{phase.illum}% lit</div>
+              </div>
+            </div>
+            <div style={{ fontFamily:SANS, fontSize:"0.9rem", lineHeight:1.55, color:"rgba(226,236,252,0.95)", marginTop:"0.9rem" }}>{phase.invite}</div>
+            {next && (
+              <div style={{ fontFamily:SANS, fontSize:"0.66rem", color:"rgba(190,206,238,0.7)", marginTop:"0.9rem", paddingTop:"0.7rem", borderTop:"1px solid rgba(255,255,255,0.12)" }}>
+                Coming up · {next.label} in {next.days} {next.days===1?"night":"nights"}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* What's stirring */}
+      <CardShell grad={`linear-gradient(140deg, #a071c4, #6ab8f0)`}>
+        <Label>WHAT'S STIRRING</Label>
+        <div style={{ fontFamily:DISPLAY, fontSize:"1.02rem", fontWeight:700, color:T.text, marginBottom:"0.3rem" }}>{stir.title}</div>
+        <div style={{ fontFamily:SANS, fontSize:"0.86rem", lineHeight:1.55, color:T.textMid }}>{stir.line}</div>
+      </CardShell>
+
+      {/* Sky wisdom */}
+      <CardShell grad={`linear-gradient(140deg, ${T.gold}, #e08040)`}>
+        <Label>SKY WISDOM</Label>
+        <div style={{ fontFamily:"Georgia,serif", fontSize:"1rem", lineHeight:1.6, color:T.text, fontStyle:"italic" }}>“{wisdom}”</div>
+      </CardShell>
+
     </div>
   );
 }
