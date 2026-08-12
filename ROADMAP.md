@@ -51,10 +51,21 @@ v3 (2026-08-09) added the real sky-watcher layer, all computed (not faked), vali
 - **Meteor watch** — the 9 established annual showers with active windows + peaks + ZHR; shows
   the active one, nights-to-peak, and best viewing time. (Perseids live now.)
 
-Still to add (honest data required): **eclipses** (solar/lunar, verified table), accurate
-**moonrise/set** (needs a lunar rise/set routine), and **ISS passes** (needs live TLE — likely
-skip offline). Planet magnitudes are qualitative descriptors, not computed numbers (avoids
-fake precision from ignoring phase angle).
+v4 (2026-08-12) added the **major sky-events layer** — verified from seasky.org / timeanddate /
+RMG Greenwich (web-researched, not memory): the whole 2026 calendar of **eclipses** (incl. the
+Aug 12 partial over Ireland, ~96%, with a look-at-the-Sun safety note), **supermoons**, a **blue
+moon**, planetary **oppositions** (Jupiter/Saturn/Uranus/Neptune), **conjunctions** (Venus–Jupiter,
+Mars–Jupiter), and **Venus's evening-star peak**. Wired in as: a loud **headline banner** at the
+top of the Now page when one is today, priority-ranked; the **countdown** now shows the next
+*notable* event (not routine moons); events appear in the **day pop-up**, **moonth pop-up**, and as
+the **moonth "significant" chip**. Lesson: for a sky app, **web-research the real event calendar** —
+the user rightly expected the eclipse to be caught. (Table currently 2026-only; refresh yearly or
+compute.)
+
+Still to add: roll the event table forward past 2026 (or compute eclipses/oppositions), accurate
+**moonrise/set** (lunar rise/set routine), **ISS passes** (needs live TLE — likely skip offline),
+and **aurora/geomagnetic** alerts for Ireland (needs a live feed). Planet magnitudes stay
+qualitative (avoids fake precision).
 
 ## The daily-driver layers (build after style lands, one at a time)
 

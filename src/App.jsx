@@ -140,6 +140,8 @@ function astrosForMoonth(calYear, i) {
 
 // The one significant sky thing that headlines a moonth, if any.
 function moonthSpecial(i) {
+  const big = skyEventsForMoonth(i).sort((a,b)=>(SKY_PRIORITY[b.type]||0)-(SKY_PRIORITY[a.type]||0))[0];
+  if (big) return big.title;
   const evs = astrosForMoonth(1, i);
   const solar = evs.find(e => SOLAR_EVENTS[e.type]);
   if (solar) return SOLAR_EVENTS[solar.type].label;
@@ -244,6 +246,59 @@ function nextSkyEvent(date) {
   if (!upcoming) return null;
   const days = Math.ceil((upcoming.date - date)/86400000);
   return { label:upcoming.label, type:upcoming.type, icon:ASTRO_ICONS[upcoming.type], days };
+}
+
+// ─── MAJOR SKY EVENTS 2026 (verified: seasky.org, timeanddate, RMG Greenwich) ──
+// The "sensations" sky-watchers track, beyond the routine moon phases.
+const SKY_EVENTS = [
+  { d:[2026,0,3],   type:"supermoon",     title:"Supermoon — Wolf Moon",           note:"The year's first full moon at its closest, looking a little larger and brighter than usual." },
+  { d:[2026,0,10],  type:"opposition",    title:"Jupiter at Opposition",           note:"Jupiter stands opposite the Sun, at its biggest and brightest — up all night, unmistakable." },
+  { d:[2026,1,17],  type:"eclipse_solar", title:"Annular Solar Eclipse",           note:"A 'ring of fire' eclipse, visible only from Antarctica and the far southern ocean.", region:"far" },
+  { d:[2026,2,3],   type:"eclipse_lunar", title:"Total Lunar Eclipse",             note:"The Moon turns deep red — visible from eastern Asia, Australia, the Pacific and North America.", region:"far" },
+  { d:[2026,4,31],  type:"blue_moon",     title:"Blue Moon",                       note:"The second full moon in a single Gregorian month — the original 'once in a blue moon'." },
+  { d:[2026,5,8],   type:"conjunction",   title:"Venus meets Jupiter",             note:"The two brightest planets pair up close in the western evening sky — a stunning sight." },
+  { d:[2026,7,12],  type:"eclipse_solar", title:"Solar Eclipse over Ireland",      note:"The first total eclipse over Europe since 1999 (total in Iceland & Spain). From Ireland it's a deep partial — up to about 96% of the Sun covered, best around 7pm, ending near 8pm. Never look at the Sun without certified eclipse glasses.", region:"ireland" },
+  { d:[2026,7,15],  type:"elongation",    title:"Venus at its Evening Best",       note:"Venus reaches its greatest distance from the Sun (46°) — the brilliant 'evening star', shining high after sunset for weeks." },
+  { d:[2026,7,28],  type:"eclipse_lunar", title:"Partial Lunar Eclipse",           note:"Part of the full Moon slips into Earth's shadow — visible from Europe, Africa and the Americas.", region:"europe" },
+  { d:[2026,8,25],  type:"opposition",    title:"Neptune at Opposition",           note:"Distant Neptune is at its closest and brightest for the year — a telescope or binocular target." },
+  { d:[2026,9,4],   type:"opposition",    title:"Saturn at Opposition",            note:"Saturn stands opposite the Sun, up all night at its brightest — the best night of the year for its rings." },
+  { d:[2026,10,15], type:"conjunction",   title:"Mars meets Jupiter",              note:"Mars and Jupiter pass just 1° apart in the pre-dawn sky — a close, colourful pairing." },
+  { d:[2026,10,24], type:"supermoon",     title:"Supermoon — Beaver Moon",         note:"A close, large full moon, brighter than average." },
+  { d:[2026,10,25], type:"opposition",    title:"Uranus at Opposition",            note:"Uranus is at its closest — just visible to sharp eyes under a dark sky, easy in binoculars." },
+  { d:[2026,11,23], type:"supermoon",     title:"Supermoon — Cold Moon",           note:"The closest, biggest, brightest full moon of the whole year, on Christmas Eve." },
+];
+const SKY_META = {
+  eclipse_solar:{ icon:"🌘", color:"#e0714a", tag:"Eclipse" },
+  eclipse_lunar:{ icon:"🌕", color:"#c0503a", tag:"Eclipse" },
+  supermoon:    { icon:"🌝", color:"#e8b44c", tag:"Supermoon" },
+  blue_moon:    { icon:"🌙", color:"#6ab8f0", tag:"Blue Moon" },
+  opposition:   { icon:"🪐", color:"#7db6d8", tag:"Opposition" },
+  conjunction:  { icon:"💫", color:"#a071c4", tag:"Conjunction" },
+  elongation:   { icon:"✨", color:"#f0c541", tag:"Best viewing" },
+};
+const SKY_PRIORITY = { eclipse_solar:6, eclipse_lunar:6, supermoon:4, blue_moon:4, conjunction:3, opposition:2, elongation:1 };
+const skyEventDate = e => new Date(e.d[0], e.d[1], e.d[2]);
+const sameDay = (a,b) => a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+function skyEventsOn(date) { return SKY_EVENTS.filter(e => sameDay(skyEventDate(e), date)); }
+function headlineEvent(date) {
+  const on = skyEventsOn(date);
+  if (!on.length) return null;
+  on.sort((a,b) => (SKY_PRIORITY[b.type]||0)-(SKY_PRIORITY[a.type]||0));
+  return on[0];
+}
+function skyEventsForMoonth(i) {
+  return SKY_EVENTS.filter(e => { const c = gregorianToCalendar(skyEventDate(e)); return c && !c.isHollow && c.moonthIdx===i; });
+}
+// Next notable event = big SKY_EVENTS + solstices/equinoxes (skips routine moon phases).
+function nextNotable(date) {
+  const pool = [
+    ...SKY_EVENTS.map(e => ({ date:skyEventDate(e), label:e.title, icon:SKY_META[e.type].icon })),
+    ...ASTRO_EVENTS.filter(e => SOLAR_EVENTS[e.type]).map(e => ({ date:e.date, label:e.label, icon:ASTRO_ICONS[e.type] })),
+  ];
+  const up = pool.filter(e => e.date > date).sort((a,b) => a.date-b.date)[0];
+  if (!up) return null;
+  return { label:up.label, icon:up.icon, days:Math.ceil((up.date - startOfDay(date))/86400000) };
 }
 
 // ─── SUN & TWILIGHT TIMES (standard sunrise/sunset algorithm) ─────────────────
@@ -668,8 +723,9 @@ function TodayView({ T, onOpenMoonth }) {
   const phase   = moonPhase(TODAY_GREG);
   const wisdom  = dailyWisdom(TODAY_GREG);
   const stir    = whatsStirring(TODAY_GREG);
-  const next    = nextSkyEvent(TODAY_GREG);
-  const weekday = DAYS_FULL[cal && !cal.isHollow ? (cal.weekDay ?? 0) : 0];
+  const next     = nextNotable(TODAY_GREG);
+  const headline = headlineEvent(TODAY_GREG);
+  const weekday  = DAYS_FULL[cal && !cal.isHollow ? (cal.weekDay ?? 0) : 0];
 
   // Location → sunset / darkness times
   const [loc, setLoc]           = useState(() => { try { const s=localStorage.getItem("moonths-loc"); return s?JSON.parse(s):null; } catch { return null; } });
@@ -721,6 +777,22 @@ function TodayView({ T, onOpenMoonth }) {
 
   return (
     <div style={{ maxWidth:600, margin:"0 auto", animation:"fadeUp 0.4s ease" }}>
+
+      {/* Headline sky event today (eclipse, supermoon, opposition…) */}
+      {headline && (
+        <div style={{ borderRadius:"20px", padding:"1.8px", background:`linear-gradient(140deg, ${SKY_META[headline.type].color}, #f6c33f)`, boxShadow:T.shadow, marginBottom:"1rem", animation:"solarPulse 3s ease infinite" }}>
+          <div style={{ background:"linear-gradient(165deg,#1a1020,#2a1626)", borderRadius:"18.2px", padding:"1.2rem 1.3rem" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:"0.8rem" }}>
+              <div style={{ fontSize:"2.4rem", filter:"drop-shadow(0 0 10px rgba(255,200,140,0.5))" }}>{SKY_META[headline.type].icon}</div>
+              <div style={{ flex:1 }}>
+                <div style={{ fontFamily:DISPLAY, fontSize:"0.56rem", fontWeight:700, letterSpacing:"0.18em", color:SKY_META[headline.type].color }}>{SKY_META[headline.type].tag.toUpperCase()} · TODAY</div>
+                <div style={{ fontFamily:DISPLAY, fontSize:"1.1rem", fontWeight:700, color:"#fff", lineHeight:1.15 }}>{headline.title}</div>
+              </div>
+            </div>
+            <div style={{ fontFamily:SANS, fontSize:"0.82rem", lineHeight:1.55, color:"rgba(240,232,236,0.92)", marginTop:"0.7rem" }}>{headline.note}</div>
+          </div>
+        </div>
+      )}
 
       {/* The Sky Clock — today's date, ours big, Gregorian small */}
       <div style={{ borderRadius:"22px", padding:"1.6px", background:`linear-gradient(140deg, ${T.gold}, ${T.sky})`, boxShadow:T.shadow, marginBottom:"1rem" }}>
@@ -1043,6 +1115,10 @@ function MoonthModal({ T, i, calYear, onClose, onOpenMoonth }) {
   const moonIcons = astros.filter(ev=>!SOLAR_EVENTS[ev.type]).map(ev=>ASTRO_ICONS[ev.type]);
   const special = moonthSpecial(i);
   const about = ABOUT[m.slug] || m.desc;
+  const merged = [
+    ...astros.map(ev => ({ icon:ASTRO_ICONS[ev.type], label:ev.label, date:ev.date, color:T.textSoft })),
+    ...skyEventsForMoonth(i).map(e => ({ icon:SKY_META[e.type].icon, label:e.title, date:skyEventDate(e), color:SKY_META[e.type].color, big:true })),
+  ].sort((a,b) => a.date - b.date);
 
   return (
     <Modal T={T} onClose={onClose}>
@@ -1059,13 +1135,13 @@ function MoonthModal({ T, i, calYear, onClose, onOpenMoonth }) {
         )}
         <p style={{ fontFamily:SANS, fontSize:"0.92rem", lineHeight:1.6, color:T.text, marginTop:"0.9rem", marginBottom:0 }}>{about}</p>
 
-        {astros.length>0 && (
+        {merged.length>0 && (
           <div style={{ marginTop:"1.1rem", borderTop:`1px solid ${T.border}`, paddingTop:"0.9rem" }}>
             <div style={{ fontFamily:DISPLAY, fontSize:"0.58rem", fontWeight:600, letterSpacing:"0.14em", color:T.textSoft, marginBottom:"0.6rem" }}>SKY THIS MOONTH</div>
-            {astros.map((ev,j) => (
+            {merged.map((ev,j) => (
               <div key={j} style={{ display:"flex", alignItems:"center", gap:"0.6rem", padding:"0.35rem 0" }}>
-                <span style={{ fontSize:"1.1rem", width:22, textAlign:"center" }}>{ASTRO_ICONS[ev.type]}</span>
-                <span style={{ fontFamily:SANS, fontSize:"0.78rem", color:T.text }}>{ev.label}</span>
+                <span style={{ fontSize:"1.1rem", width:22, textAlign:"center" }}>{ev.icon}</span>
+                <span style={{ fontFamily:SANS, fontSize:"0.78rem", fontWeight: ev.big?700:400, color: ev.big?ev.color:T.text }}>{ev.label}</span>
                 <span style={{ fontFamily:SANS, fontSize:"0.64rem", color:T.textSoft, marginLeft:"auto" }}>{ev.date.toLocaleDateString("en-GB",{day:"numeric",month:"long"})}</span>
               </div>
             ))}
@@ -1217,6 +1293,7 @@ function DayModal({ T, m, day, onClose }) {
   const { dayNum, greg, astro, weekDay, isToday } = day;
   const phase = moonPhase(greg);
   const cal   = gregorianToCalendar(greg);
+  const sky   = skyEventsOn(greg);
   return (
     <Modal T={T} onClose={onClose} maxWidth={380}>
       <div style={{ padding:"1.6rem 1.4rem 1.5rem", textAlign:"center" }}>
@@ -1235,7 +1312,7 @@ function DayModal({ T, m, day, onClose }) {
           </div>
         </div>
 
-        {astro.length>0 && (
+        {(astro.length>0 || sky.length>0) && (
           <div style={{ marginTop:"1rem", display:"flex", flexWrap:"wrap", gap:"0.4rem", justifyContent:"center" }}>
             {astro.map((ev,i) => (
               <span key={i} style={{ display:"inline-flex", alignItems:"center", gap:"0.3rem", background:T.goldSoft, border:`1px solid ${T.gold}`, borderRadius:"2rem", padding:"0.2rem 0.65rem" }}>
@@ -1243,7 +1320,16 @@ function DayModal({ T, m, day, onClose }) {
                 <span style={{ fontFamily:DISPLAY, fontSize:"0.6rem", fontWeight:600, color:T.gold }}>{ev.label}</span>
               </span>
             ))}
+            {sky.map((ev,i) => (
+              <span key={`s${i}`} style={{ display:"inline-flex", alignItems:"center", gap:"0.3rem", background:"rgba(224,113,74,0.12)", border:`1px solid ${SKY_META[ev.type].color}`, borderRadius:"2rem", padding:"0.2rem 0.65rem" }}>
+                <span style={{ fontSize:"0.85rem" }}>{SKY_META[ev.type].icon}</span>
+                <span style={{ fontFamily:DISPLAY, fontSize:"0.6rem", fontWeight:600, color:SKY_META[ev.type].color }}>{ev.title}</span>
+              </span>
+            ))}
           </div>
+        )}
+        {sky.length>0 && (
+          <div style={{ marginTop:"0.8rem", fontFamily:SANS, fontSize:"0.72rem", lineHeight:1.5, color:T.textMid, textAlign:"left" }}>{sky[0].note}</div>
         )}
       </div>
     </Modal>
