@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { WONDERS, WONDER_GROUPS } from "./wonders.js";
 
 // Days Out typography — Poppins for display, Inter for body.
 const DISPLAY = "'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif";
@@ -450,6 +451,92 @@ function activeShower(date) {
   });
   withPeak.sort((a,b)=>Math.abs(a.daysToPeak)-Math.abs(b.daysToPeak));
   return withPeak[0];
+}
+
+// ─── MOMENTS OF WONDER ────────────────────────────────────────────────────────
+// The words for what is happening outside right now. The sky-triggered ones fire
+// on a night the app can actually compute (full moon, the new crescent, a shower
+// at its peak, the dark of the moon). Everything else comes from the month
+// window, which is a WINDOW and not a date — a first swallow is "any day now",
+// never "today". Marking one is how a year gets a record.
+
+const WONDER_BY_SKY = k => WONDERS.find(w => w.sky === k);
+const inMonth = (w, mo) => Array.isArray(w.months) && w.months.includes(mo);
+const isSeasonal = w => Array.isArray(w.months) && w.months.length < 12;
+
+function pickWonder(date, seen = {}) {
+  const mo     = date.getMonth() + 1;
+  const phase  = moonPhase(date);
+  const shower = activeShower(date);
+  const astro  = getAstroForDate(date);
+  const hit    = (key, kicker, note) => {
+    const w = WONDER_BY_SKY(key);
+    return w ? { w, kicker, note } : null;
+  };
+
+  // 1. Tonight is genuinely one of these — no guessing involved.
+  if (shower && Math.abs(shower.daysToPeak) <= 1)
+    return hit("meteor", "Falling stars tonight",
+      `The ${shower.name} are at their peak — best ${shower.best}, and up to ${shower.zhr} an hour under a dark sky.`);
+  if (phase.name === "Full Moon")
+    return hit("fullmoon", "Full moon tonight",
+      "It rises about the time the sun sets and stays up all night. The one night a month nobody can miss it.");
+  if (astro.some(e => e.type === "solstice_summer" || e.type === "solstice_winter"))
+    return hit("solstice", "The turn of the year",
+      "The sun stands still today and starts back the other way. Worth marking out loud.");
+  if (phase.frac >= 0.03 && phase.frac <= 0.12)
+    return hit("newmoon", "The new crescent",
+      "Look low in the west just after the light goes — a fine curved sliver, and a whole new month starting.");
+  if (phase.name === "New Moon")
+    return hit("firststar", "Darkest sky of the month",
+      "No moon at all tonight, so the stars come out properly. The first one you see is very often Venus.");
+  if (mo >= 11 || mo <= 2) {
+    const orion = WONDER_BY_SKY("orion");
+    // Orion only gets the top slot early in his season, when he is news.
+    if (orion && (mo === 11 || mo === 12) && date.getDate() <= 10)
+      return { w: orion, kicker: "Orion is back", note: "He is up in the south-east by early evening now, and he stays until spring." };
+  }
+
+  const n        = Math.floor((date - new Date(date.getFullYear(), 0, 0)) / 86400000);
+  const seasonal = WONDERS.filter(w => isSeasonal(w) && inMonth(w, mo) && !w.sky);
+  const anytime  = WONDERS.filter(w => w.months === "any" && !w.sky);
+
+  // 2. The firsts come before everything else. An entry whose window OPENS this
+  //    month is a first-of-the-year — the first swallow, the first frogspawn, the
+  //    first blackberry — and it holds the card until it is marked for this year.
+  //    That is the whole point: you are being told to watch for it before it happens.
+  const yr    = date.getFullYear();
+  const done  = name => (seen[name] || []).some(d => d.slice(0,4) === String(yr));
+  const firsts = seasonal.filter(w => w.months[0] === mo && !done(w.name));
+  if (firsts.length) {
+    return {
+      w: firsts[n % firsts.length],
+      kicker: "Any day now",
+      note: "This is the month it starts. Watch for it, and mark the day you catch it — that is how the year gets a record.",
+    };
+  }
+
+  // 3. Otherwise: what is possible outside this month. Mostly the seasonal set,
+  //    with the all-year moments folded in so a thin month never loops the same
+  //    four cards forever.
+  const pool = (n % 4 === 3 || !seasonal.length) ? anytime : seasonal;
+  const w    = pool[n % pool.length];
+  if (!w) return null;
+  return { w, kicker: "Out there right now", note: null };
+}
+
+function loadSeen() { try { return JSON.parse(localStorage.getItem("skyclock-wonder-seen") || "{}"); } catch { return {}; } }
+function saveSeen(o) { try { localStorage.setItem("skyclock-wonder-seen", JSON.stringify(o)); } catch {} }
+const prettyDate = iso => new Date(iso).toLocaleDateString("en-GB", { day:"numeric", month:"long" });
+
+function speakWords(text) {
+  try {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text.replace(/\n/g, ", "));
+    u.rate = 0.88; u.pitch = 1.02; u.lang = "en-GB";
+    window.speechSynthesis.speak(u);
+  } catch {}
 }
 
 // ─── WHERE WE ARE IN THE SKY (sun sign vs real constellation, season, great age) ─
@@ -1006,6 +1093,8 @@ function GridView({ T, calYear, onSelectMoonth, onOpenToday }) {
         </div>
       </div>
 
+      <WonderCard T={T} />
+
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(100px,1fr))", gap:"0.5rem" }}>
         {MOONTHS.map((m,i) => {
           const isCurrent = TODAY_CAL && !TODAY_CAL.isHollow && TODAY_CAL.moonthIdx===i;
@@ -1049,6 +1138,137 @@ function GridView({ T, calYear, onSelectMoonth, onOpenToday }) {
       </div>
       <div style={{ textAlign:"center", fontSize:"0.6rem", color:T.textSoft, marginTop:"0.8rem", fontFamily:SANS }}>Tap a moonth to open it</div>
     </div>
+  );
+}
+
+// ─── WONDER CARD (front page) ─────────────────────────────────────────────────
+function WonderCard({ T }) {
+  const [open, setOpen]   = useState(false);
+  const [seen, setSeen]   = useState(loadSeen);
+  // Picked once per opening. Marking a first must not make the card jump to the
+  // next one under your finger — it moves on the next time you open the app.
+  const [pick] = useState(() => pickWonder(TODAY_GREG, loadSeen()));
+  if (!pick) return null;
+
+  const { w, kicker, note } = pick;
+  const g      = WONDER_GROUPS[w.group] || { c:T.sky, cd:T.gold };
+  const todayIso = TODAY_GREG.toISOString().slice(0,10);
+  const mine   = seen[w.name] || [];
+  const markedToday = mine.includes(todayIso);
+  const earlier = mine.filter(d => d !== todayIso).sort();
+
+  function mark() {
+    const next = { ...seen };
+    const list = new Set(next[w.name] || []);
+    if (markedToday) list.delete(todayIso); else list.add(todayIso);
+    next[w.name] = [...list].sort();
+    if (!next[w.name].length) delete next[w.name];
+    setSeen(next); saveSeen(next);
+  }
+
+  const Pill = ({ onClick, active, children }) => (
+    <button onClick={onClick} style={{
+      display:"flex", alignItems:"center", gap:"0.3rem",
+      background: active ? g.c : T.surface,
+      border:`1px solid ${active ? g.c : T.border}`,
+      color: active ? "#fff" : T.textMid,
+      borderRadius:"1.5rem", padding:"0.38rem 0.8rem", cursor:"pointer",
+      fontFamily:DISPLAY, fontWeight:700, fontSize:"0.62rem", whiteSpace:"nowrap",
+      transition:"all 0.18s",
+    }}>{children}</button>
+  );
+
+  return (
+    <>
+      <div style={{ borderRadius:"20px", padding:"1.5px", background:`linear-gradient(140deg, ${g.c}, ${g.cd})`, boxShadow:T.shadow, marginBottom:"0.9rem" }}>
+        <div style={{ background:T.card, borderRadius:"18.5px", padding:"0.95rem 1.05rem 0.85rem" }}>
+
+          <div style={{ display:"flex", alignItems:"flex-start", gap:"0.7rem" }}>
+            <div style={{ fontSize:"1.9rem", lineHeight:1, animation:"symbolFloat 5s ease-in-out infinite" }}>{w.emoji}</div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontFamily:DISPLAY, fontSize:"0.55rem", fontWeight:700, letterSpacing:"0.18em", textTransform:"uppercase", color:g.c }}>{kicker}</div>
+              <div style={{ fontFamily:DISPLAY, fontSize:"1rem", fontWeight:700, color:T.text, lineHeight:1.2, marginTop:"0.12rem" }}>{w.name}</div>
+              <div style={{ fontFamily:SANS, fontSize:"0.68rem", color:T.textMid, lineHeight:1.45, marginTop:"0.2rem" }}>{w.cue}</div>
+            </div>
+          </div>
+
+          {note && (
+            <div style={{ fontFamily:SANS, fontSize:"0.7rem", color:T.textMid, lineHeight:1.55, marginTop:"0.65rem" }}>{note}</div>
+          )}
+
+          {/* the words — the whole point of the card */}
+          <div style={{
+            marginTop:"0.7rem", padding:"0.7rem 0.85rem", borderRadius:"13px",
+            background:T.surface, borderLeft:`3px solid ${g.c}`,
+            fontFamily:DISPLAY, fontSize:"0.8rem", fontWeight:500, lineHeight:1.55,
+            color:T.text, whiteSpace:"pre-line",
+          }}>{w.words}</div>
+          <div style={{ fontFamily:SANS, fontSize:"0.56rem", color:T.textSoft, marginTop:"0.35rem", letterSpacing:"0.02em" }}>
+            {w.by === "Ours" ? "Words of our own" : w.by}
+          </div>
+
+          {earlier.length > 0 && (
+            <div style={{ fontFamily:SANS, fontSize:"0.62rem", color:g.c, marginTop:"0.5rem", fontWeight:600 }}>
+              You marked this before — {earlier.slice(-2).map(prettyDate).join(", ")}
+              {earlier.length > 2 && ` (+${earlier.length - 2} more)`}
+            </div>
+          )}
+
+          <div style={{ display:"flex", gap:"0.4rem", marginTop:"0.75rem", flexWrap:"wrap" }}>
+            <Pill onClick={()=>speakWords(w.words)}>🔊 Say it</Pill>
+            <Pill onClick={mark} active={markedToday}>{markedToday ? "✓ Marked today" : "I saw it"}</Pill>
+            <Pill onClick={()=>setOpen(true)}>How &amp; why</Pill>
+          </div>
+        </div>
+      </div>
+
+      {open && <WonderModal T={T} w={w} g={g} mine={mine} onClose={()=>setOpen(false)} />}
+    </>
+  );
+}
+
+function WonderModal({ T, w, g, mine, onClose }) {
+  const Section = ({ title, children }) => (
+    <div style={{ marginTop:"1rem" }}>
+      <div style={{ fontFamily:DISPLAY, fontSize:"0.55rem", fontWeight:700, letterSpacing:"0.18em", textTransform:"uppercase", color:g.c, marginBottom:"0.3rem" }}>{title}</div>
+      <div style={{ fontFamily:SANS, fontSize:"0.76rem", lineHeight:1.65, color:T.textMid }}>{children}</div>
+    </div>
+  );
+  return (
+    <Modal T={T} onClose={onClose} maxWidth={480}>
+      <div style={{ display:"flex", alignItems:"center", gap:"0.6rem" }}>
+        <div style={{ fontSize:"1.7rem" }}>{w.emoji}</div>
+        <div>
+          <div style={{ fontFamily:DISPLAY, fontSize:"1.05rem", fontWeight:700, color:T.text, lineHeight:1.2 }}>{w.name}</div>
+          <div style={{ fontFamily:SANS, fontSize:"0.66rem", color:T.textSoft }}>{w.group} · {w.kind} · {w.rarity}</div>
+        </div>
+      </div>
+
+      <div style={{
+        marginTop:"0.9rem", padding:"0.85rem 0.95rem", borderRadius:"13px",
+        background:T.surface, borderLeft:`3px solid ${g.c}`,
+        fontFamily:DISPLAY, fontSize:"0.9rem", fontWeight:500, lineHeight:1.7,
+        color:T.text, whiteSpace:"pre-line",
+      }}>{w.words}</div>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:"0.5rem", marginTop:"0.4rem" }}>
+        <div style={{ fontFamily:SANS, fontSize:"0.58rem", color:T.textSoft }}>{w.by === "Ours" ? "Words of our own" : w.by}</div>
+        <button onClick={()=>speakWords(w.words)} style={{
+          background:T.surface, border:`1px solid ${T.border}`, color:T.textMid,
+          borderRadius:"1.5rem", padding:"0.3rem 0.7rem", cursor:"pointer",
+          fontFamily:DISPLAY, fontWeight:700, fontSize:"0.6rem",
+        }}>🔊 Say it</button>
+      </div>
+
+      <Section title="What you do">{w.how}</Section>
+      <Section title="Why it is worth doing">{w.why}</Section>
+      <Section title="Where the words come from">{w.origin}</Section>
+      {w.variant && <Section title="Another way to say it">{w.variant}</Section>}
+      {mine.length > 0 && (
+        <Section title="Your record">
+          {mine.map(prettyDate).join(" · ")} — {mine.length === 1 ? "marked once" : `marked ${mine.length} times`}.
+        </Section>
+      )}
+    </Modal>
   );
 }
 
