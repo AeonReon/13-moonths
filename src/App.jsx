@@ -546,7 +546,7 @@ export default function App() {
   const T = THEMES[mode] || THEMES.light;
   useEffect(() => { try { localStorage.setItem("moonths-theme", mode); } catch {} }, [mode]);
 
-  const [view, setView]                       = useState("today");
+  const [view, setView]                       = useState("grid");
   const [selectedMoonth, setSelectedMoonth]   = useState(TODAY_CAL?.moonthIdx ?? 0);
   const [calYear]                             = useState(TODAY_CAL?.calYear ?? 1);
   const [converterInput, setConverterInput]   = useState("");
@@ -633,7 +633,7 @@ export default function App() {
 
       <main style={{ padding:"1.5rem 1rem 5rem", maxWidth:1040, margin:"0 auto", position:"relative", zIndex:1 }}>
         {view==="today"     && <TodayView T={T} onOpenMoonth={openMoonth} />}
-        {view==="grid"      && <GridView T={T} calYear={calYear} onSelectMoonth={openMoonth} />}
+        {view==="grid"      && <GridView T={T} calYear={calYear} onSelectMoonth={openMoonth} onOpenToday={()=>setView("today")} />}
         {view==="year"      && <YearView T={T} calYear={calYear} onSelectMoonth={openMoonth} />}
         {view==="moonth"    && <MoonthView T={T} calYear={calYear} moonthIdx={selectedMoonth} onPrev={()=>setSelectedMoonth(m=>Math.max(0,m-1))} onNext={()=>setSelectedMoonth(m=>Math.min(12,m+1))} onBack={()=>setView("grid")} />}
         {view==="converter" && <ConverterView T={T} input={converterInput} setInput={setConverterInput} result={converterResult} onConvert={handleConverter} />}
@@ -648,9 +648,9 @@ export default function App() {
 // ─── BOTTOM TAB BAR ───────────────────────────────────────────────────────────
 function BottomNav({ T, mode, view, setView }) {
   const items = [
-    { v:"today",     label:"Now",       icon:"✨", match:["today"] },
     { v:"grid",      label:"Calendar",  icon:"🗓️", match:["grid","moonth"] },
     { v:"year",      label:"Cards",     icon:"🖼️", match:["year"] },
+    { v:"today",     label:"Now",       icon:"✨", match:["today"] },
     { v:"converter", label:"Convert",   icon:"🔄", match:["converter"] },
   ];
   return (
@@ -972,9 +972,40 @@ function TodayView({ T, onOpenMoonth }) {
 }
 
 // ─── GRID VIEW (all 13 at a glance) ───────────────────────────────────────────
-function GridView({ T, calYear, onSelectMoonth }) {
+function GridView({ T, calYear, onSelectMoonth, onOpenToday }) {
+  const cal     = TODAY_CAL;
+  const m       = cal && !cal.isHollow ? MOONTHS[cal.moonthIdx] : null;
+  const ourDate = cal && !cal.isHollow
+    ? `${String(cal.day).padStart(2,"0")}/${String(cal.moonthIdx+1).padStart(2,"0")}/${String(cal.calYear).padStart(2,"0")}`
+    : "Hollow Day";
+  const phase   = moonPhase(TODAY_GREG);
   return (
     <div style={{ animation:"fadeUp 0.4s ease" }}>
+
+      {/* Slim today strip — the date, then straight into the year */}
+      <div style={{ borderRadius:"18px", padding:"1.4px", background:`linear-gradient(140deg, ${T.gold}, ${T.sky})`, boxShadow:T.shadowSm, marginBottom:"0.9rem" }}>
+        <div style={{ background:T.card, borderRadius:"16.6px", padding:"0.75rem 0.95rem", display:"flex", alignItems:"center", gap:"0.8rem" }}>
+          <div style={{ fontFamily:DISPLAY, fontSize:"1.5rem", fontWeight:800, lineHeight:1,
+            background:`linear-gradient(120deg, ${T.sky}, ${T.gold})`, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>{ourDate}</div>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontFamily:DISPLAY, fontSize:"0.78rem", fontWeight:700, color:T.text, lineHeight:1.15 }}>
+              {m ? `Day ${cal.day} · ${m.name}` : "Outside all moonths"}
+            </div>
+            <div style={{ fontFamily:SANS, fontSize:"0.6rem", color:T.textSoft, marginTop:"0.12rem" }}>
+              {TODAY_GREG.toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})}
+            </div>
+          </div>
+          <button onClick={onOpenToday} style={{
+            display:"flex", alignItems:"center", gap:"0.35rem",
+            background:T.goldSoft, border:`1px solid ${T.gold}`, color:T.gold,
+            borderRadius:"1.5rem", padding:"0.35rem 0.7rem", cursor:"pointer",
+            fontFamily:DISPLAY, fontWeight:700, fontSize:"0.6rem", whiteSpace:"nowrap",
+          }}>
+            <span style={{ fontSize:"0.85rem" }}>{phase.emoji}</span> Tonight
+          </button>
+        </div>
+      </div>
+
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(100px,1fr))", gap:"0.5rem" }}>
         {MOONTHS.map((m,i) => {
           const isCurrent = TODAY_CAL && !TODAY_CAL.isHollow && TODAY_CAL.moonthIdx===i;
